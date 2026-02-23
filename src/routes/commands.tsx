@@ -118,7 +118,7 @@ function CommandsRouteComponent() {
   const [unit, setUnit] = useState<Unit>("day");
 
   const [jobSaveStateText, setJobSaveStateText] = useState<
-    "Kaydediliyor..." | "Kaydedildi" | ""
+    "Kaydediliyor..." | "Kaydedildi" | "Kaydedilmedi" | ""
   >("");
 
   const [lastRanAt, setLastRanAt] = useState<Date | null>(null);
@@ -150,7 +150,7 @@ function CommandsRouteComponent() {
         jobData.job.lastRanAt ? new Date(jobData.job.lastRanAt) : null,
       );
       setIsDirty(false);
-    }
+    } else setJobSaveStateText("Kaydedilmedi");
   }, [jobQuery.data]);
 
   const jobMutation = useMutation({
