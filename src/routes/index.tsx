@@ -44,7 +44,7 @@ const productsQueryOptions = (
   page = 1,
   limit = 20,
   search?: string,
-  sortBy: SortBy = "name",
+  sortBy: SortBy = "stockCode",
   sortOrder: "asc" | "desc" = "asc",
 ) =>
   queryOptions({
@@ -95,8 +95,8 @@ function HomeComponent() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState<string | undefined>(undefined);
 
-  const sortBy = (sorting[0]?.id as SortBy | undefined) ?? "name";
-  const sortOrder = sorting[0]?.desc ? "desc" : "asc";
+  const sortBy = (sorting[0]?.id as SortBy | undefined) ?? "stockCode";
+  const sortOrder = sorting[0]?.desc ? "asc" : "desc";
 
   const { data } = useSuspenseQuery(
     productsQueryOptions(
