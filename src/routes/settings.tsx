@@ -33,8 +33,10 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { axios } from "@/config/api";
 import { firmQueryKey, meQueryKey } from "@/constants/queryKeys";
+import { filterEmptyFields } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
+import { firmSchema } from "@/validations/zod-schemas";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,21 +95,6 @@ const userSchema = z
     },
     { message: "Şifreler eşleşmiyor", path: ["confirmPassword"] },
   );
-
-const firmSchema = z.object({
-  name: z.string().optional(),
-  diaUsername: z.string().optional(),
-  diaPassword: z.string().optional(),
-  diaApiKey: z.string().optional(),
-  diaFirmCode: z
-    .number()
-    .int()
-    .positive({ message: "Firma kodu geçerli bir sayı olmalıdır" }),
-  diaPeriodCode: z
-    .number()
-    .int()
-    .min(0, { message: "Dönem kodu 0 veya daha büyük olmalıdır" }),
-});
 
 type UserFormValues = z.infer<typeof userSchema>;
 type FirmFormValues = z.infer<typeof firmSchema>;
@@ -235,7 +222,7 @@ function ProfileRouteComponent() {
     handleSubmit: handleFirmSubmit,
     formState: { errors: firmErrors },
     reset: resetFirm,
-  } = useForm<FirmFormValues>({
+  } = useForm({
     resolver: zodResolver(firmSchema),
     defaultValues: {
       name: "",
@@ -263,9 +250,7 @@ function ProfileRouteComponent() {
 
   const firmMutation = useMutation({
     mutationFn: async (data: FirmFormValues) => {
-      const payload = Object.fromEntries(
-        Object.entries(data).filter(([, v]) => v !== "" && v !== undefined),
-      );
+      const payload = filterEmptyFields(data);
       return (
         await axios.patch<{ message: string; updatedFirm: Firm }>(
           "/admin/firm",

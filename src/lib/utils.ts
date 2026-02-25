@@ -47,3 +47,11 @@ export function timeAgo(date: Date, locale = "tr") {
   const days = Math.floor(diffMs / DAY);
   return rtf.format(-days, "day");
 }
+
+export function filterEmptyFields(obj: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(
+      ([, value]) => value !== "" && value !== undefined,
+    ),
+  );
+}

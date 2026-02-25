@@ -12,6 +12,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DataTable } from "@/components/data-table";
+import FirmDeleteModal from "@/components/firm-delete-modal";
+import { FirmUpdateModal } from "@/components/firm-update-modal";
 import { type FirmSummary, firmsColumns } from "@/components/firms-columns";
 import { Button } from "@/components/ui/button";
 import {
@@ -133,22 +135,28 @@ function SuperAdminRouteComponent() {
   const users = usersData.users;
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 p-5">
-      <FirmsTable firms={firms} />
-      <UsersTable users={users} />
-      <CreateFirmCard
-        onCreated={(firm) => {
-          queryClient.setQueryData(
-            firmsQueryOptions.queryKey,
-            (prev: { message: string; firms: FirmSummary[] } | undefined) => ({
-              message: prev?.message ?? "",
-              firms: [...(prev?.firms ?? []), firm],
-            }),
-          );
-        }}
-      />
-      <CreateUserCard firms={firms} />
-    </div>
+    <>
+      <div className="mx-auto w-full max-w-3xl space-y-6 p-5">
+        <FirmsTable firms={firms} />
+        <UsersTable users={users} />
+        <CreateFirmCard
+          onCreated={(firm) => {
+            queryClient.setQueryData(
+              firmsQueryOptions.queryKey,
+              (
+                prev: { message: string; firms: FirmSummary[] } | undefined,
+              ) => ({
+                message: prev?.message ?? "",
+                firms: [...(prev?.firms ?? []), firm],
+              }),
+            );
+          }}
+        />
+        <CreateUserCard firms={firms} />
+      </div>
+      <FirmUpdateModal />
+      <FirmDeleteModal />
+    </>
   );
 }
 
@@ -226,7 +234,6 @@ function CreateFirmCard({
         diaFirmCode: undefined,
         diaPeriodCode: undefined,
       },
-      job: { frequency: undefined, unit: "day" },
     },
   });
 
