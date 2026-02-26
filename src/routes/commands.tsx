@@ -33,7 +33,7 @@ import {
   jobMutationKey,
   productsSyncMutationKey,
 } from "@/constants/mutationKeys";
-import { jobQueryKey } from "@/constants/queryKeys";
+import { jobQueryKey, productsQueryKey } from "@/constants/queryKeys";
 import { cn, timeAgo } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
@@ -98,11 +98,13 @@ function CommandsRouteComponent() {
         })
       ).data;
     },
-    onSuccess: ({ newRowCounts }) =>
+    onSuccess: ({ newRowCounts }) => {
+      queryClient.invalidateQueries({ queryKey: [productsQueryKey] });
+
       toast(`Ürünler başarıyla getirildi`, {
         description: `${newRowCounts.insertedProductRowsCount} tane yeni, ${newRowCounts.updatedProductRowsCount} tane değiştirilmiş, ${newRowCounts.deletedProductRowsCount} tane silinen ürün ve ${newRowCounts.insertedBarcodeRowsCount} tane yeni, ${newRowCounts.updatedBarcodeRowsCount} tane değiştirilmiş barkod bulundu.`,
-      }),
-
+      });
+    },
     onError: (error) => toast(error.message),
   });
 
