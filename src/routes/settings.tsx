@@ -8,13 +8,16 @@ import {
 import { createFileRoute } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import {
+  BookOpenIcon,
   BuildingIcon,
+  ExternalLinkIcon,
   KeyRoundIcon,
   SaveIcon,
   ShieldCheckIcon,
+  UploadIcon,
   UserCircle2Icon,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -31,7 +34,8 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
-import { axios } from "@/config/api";
+import { apiBaseURL, axios } from "@/config/api";
+import { catalogMutationKey } from "@/constants/mutationKeys";
 import { firmQueryKey, meQueryKey } from "@/constants/queryKeys";
 import { filterEmptyFields } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
@@ -247,6 +251,33 @@ function ProfileRouteComponent() {
       });
     }
   }, [firmQuery.data, resetFirm]);
+
+  // ── Catalog ──
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const catalogMutation = useMutation({
+    mutationKey: [catalogMutationKey],
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return (
+        await axios.post<{ filename: string; message: string }>(
+          "/admin/catalog",
+          formData,
+          { params: { serverCode } },
+        )
+      ).data;
+    },
+    onSuccess: () => {
+      toast("Katalog yüklendi", {
+        description: "Katalog dosyası başarıyla yüklendi.",
+      });
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    onError: (error) => toast(error.message),
+  });
 
   const firmMutation = useMutation({
     mutationFn: async (data: FirmFormValues) => {
@@ -537,6 +568,64 @@ function ProfileRouteComponent() {
             </div>
           </CardContent>
         </form>
+      </Card>
+      {/* ── Katalog ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <BookOpenIcon className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <CardTitle className="text-base">Katalog</CardTitle>
+              <CardDescription className="text-xs">
+                Ürün kataloğunuzu yükleyin (maks. 50 MB)
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Field>
+            <FieldLabel htmlFor="catalog-file">Katalog Dosyası</FieldLabel>
+            <Input
+              id="catalog-file"
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+            />
+            <FieldDescription>
+              Desteklenen formatlar: resim dosyaları
+            </FieldDescription>
+          </Field>
+
+          <div className="flex items-center justify-between pt-1">
+            <a
+              href={`${apiBaseURL}/servers/${serverCode}/catalog`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              <ExternalLinkIcon className="h-3.5 w-3.5" />
+              Mevcut kataloğu görüntüle
+            </a>
+
+            <Button
+              type="button"
+              size="sm"
+              className="flex cursor-pointer items-center gap-2"
+              disabled={!selectedFile || catalogMutation.isPending}
+              onClick={() =>
+                selectedFile && catalogMutation.mutate(selectedFile)
+              }
+            >
+              {catalogMutation.isPending ? (
+                <Spinner className="size-4" />
+              ) : (
+                <UploadIcon className="h-4 w-4" />
+              )}
+              {catalogMutation.isPending ? "Yükleniyor..." : "Yükle"}
+            </Button>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );
