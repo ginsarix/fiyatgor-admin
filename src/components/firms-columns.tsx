@@ -10,6 +10,7 @@ import { Button } from "./ui/button";
 
 export type FirmSummary = {
   id: number;
+  firmCode: string;
   name: string;
   diaServerCode: string;
   diaFirmCode: number;
@@ -24,6 +25,11 @@ export const firmsColumns: ColumnDef<FirmSummary>[] = [
     header: "#",
     accessorKey: "id",
   },
+
+  {
+    header: "Firma Kodu",
+    accessorKey: "firmCode",
+  },
   {
     header: "Firma Adı",
     accessorKey: "name",
@@ -33,7 +39,7 @@ export const firmsColumns: ColumnDef<FirmSummary>[] = [
     accessorKey: "diaServerCode",
   },
   {
-    header: "Firma Kodu",
+    header: "Dia Firma Kodu",
     accessorKey: "diaFirmCode",
   },
   {

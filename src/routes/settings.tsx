@@ -56,6 +56,7 @@ type User = {
 
 type Firm = {
   id: number;
+  firmCode: string;
   name: string;
   diaServerCode: string;
   diaUsername: string;
@@ -229,6 +230,7 @@ function ProfileRouteComponent() {
   } = useForm({
     resolver: zodResolver(firmSchema),
     defaultValues: {
+      firmCode: "",
       name: "",
       diaUsername: "",
       diaPassword: "",
@@ -242,6 +244,7 @@ function ProfileRouteComponent() {
     const data = firmQuery.data;
     if (data && "firm" in data) {
       resetFirm({
+        firmCode: data.firm.firmCode,
         name: data.firm.name,
         diaUsername: data.firm.diaUsername,
         diaPassword: data.firm.diaPassword,
@@ -481,6 +484,17 @@ function ProfileRouteComponent() {
                     value={serverCode}
                     disabled
                     className="text-muted-foreground"
+                  />
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="firm-code">
+                    Firma Kodu (tanımlayıcı)
+                  </FieldLabel>
+                  <Input
+                    id="firm-code"
+                    {...registerFirm("firmCode")}
+                    placeholder="00505"
                   />
                 </Field>
 

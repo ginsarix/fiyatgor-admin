@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const firmSchema = z.object({
+  firmCode: z.string().min(1, { error: "Firma kodu boş olamaz" }),
   name: z.string().optional(),
   diaUsername: z.string().optional(),
   diaPassword: z.string().optional(),
@@ -12,7 +13,7 @@ export const firmSchema = z.object({
         return Number(val);
       },
       z
-        .number()
+        .number({ error: "Dia firma kodu boş olamaz" })
         .int({ error: "Firma kodu geçerli bir sayı olmalıdır" })
         .positive({ error: "Firma kodu geçerli bir sayı olmalıdır" })
         .optional(),
@@ -25,8 +26,8 @@ export const firmSchema = z.object({
         return Number(val);
       },
       z
-        .number()
-        .int({ error: "Firma kodu geçerli bir sayı olmalıdır" })
+        .number({ error: "Dönem kodu boş olamaz" })
+        .int({ error: "Dönem kodu geçerli bir sayı olmalıdır" })
         .min(0, { error: "Dönem kodu 0 veya daha büyük olmalıdır" })
         .optional(),
     )

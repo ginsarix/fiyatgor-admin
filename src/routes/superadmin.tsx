@@ -51,24 +51,29 @@ type CreatedFirm = FirmSummary & {
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 const firmSchema = z.object({
-  name: z.string().min(1, { message: "Firma adı boş olamaz" }),
-  diaServerCode: z.string().min(1, { message: "Sunucu kodu boş olamaz" }),
-  diaUsername: z.string().min(1, { message: "DIA kullanıcı adı boş olamaz" }),
-  diaPassword: z.string().min(1, { message: "DIA şifresi boş olamaz" }),
+  firmCode: z.string().min(1, { error: "Firma kodu boş olamaz" }),
+  name: z.string().min(1, { error: "Firma adı boş olamaz" }),
+  diaServerCode: z.string().min(1, { error: "Sunucu kodu boş olamaz" }),
+  diaUsername: z.string().min(1, { error: "DIA kullanıcı adı boş olamaz" }),
+  diaPassword: z.string().min(1, { error: "DIA şifresi boş olamaz" }),
   diaApiKey: z.string().optional(),
   diaFirmCode: z
-    .number()
-    .int()
-    .positive({ message: "Geçerli bir firma kodu giriniz" }),
-  diaPeriodCode: z.number().int().min(0).optional(),
+    .number({ error: "Dia firma kodu boş olamaz" })
+    .int({ error: "Geçerli bir dia firma kodu giriniz" })
+    .positive({ error: "Geçerli bir dia firma kodu giriniz" }),
+  diaPeriodCode: z
+    .number({ error: "Dönem kodu boş olamaz" })
+    .int({ error: "Geçerli bir dönem kodu giriniz" })
+    .min(0)
+    .optional(),
 });
 
 const jobSchema = z.object({
   frequency: z
-    .number()
-    .int()
-    .positive({ message: "Sıklık 0'dan büyük olmalıdır" }),
-  unit: z.enum(["minute", "hour", "day", "month"]),
+    .number({ error: "Sıklık sayısı boş olamaz" })
+    .int({ error: "Geçerli bir sıklık sayısı giriniz" })
+    .positive({ error: "Sıklık 0'dan büyük olmalıdır" }),
+  unit: z.enum(["minute", "hour", "day", "month"]).default("hour"),
 });
 
 const createFirmSchema = z.object({
@@ -78,10 +83,10 @@ const createFirmSchema = z.object({
 });
 
 const createUserSchema = z.object({
-  name: z.string().min(1, { message: "Ad Soyad boş olamaz" }),
-  email: z.email({ message: "Lütfen geçerli bir e-posta giriniz" }),
-  password: z.string().min(8, { message: "Şifre en az 8 karakter olmalıdır" }),
-  firmId: z.number().int().positive({ message: "Bir firma seçiniz" }),
+  name: z.string().min(1, { error: "Ad Soyad boş olamaz" }),
+  email: z.email({ error: "Lütfen geçerli bir e-posta giriniz" }),
+  password: z.string().min(8, { error: "Şifre en az 8 karakter olmalıdır" }),
+  firmId: z.number({ error: "Bir firma seçiniz" }).int().positive(),
   role: z.enum(["admin", "superadmin"]),
 });
 
@@ -222,11 +227,12 @@ function CreateFirmCard({
     reset,
     setValue,
     watch,
-  } = useForm<CreateFirmValues>({
+  } = useForm({
     resolver: zodResolver(createFirmSchema),
     defaultValues: {
       firm: {
         name: "",
+        firmCode: "",
         diaServerCode: "",
         diaUsername: "",
         diaPassword: "",
@@ -288,6 +294,20 @@ function CreateFirmCard({
               <FieldDescription>{errors.firm?.name?.message}</FieldDescription>
             </Field>
 
+            <Field data-invalid={!!errors.firm?.firmCode}>
+              <FieldLabel htmlFor="firm-code">
+                Firma Kodu (tanımlayıcı)
+              </FieldLabel>
+              <Input
+                id="firm-code"
+                {...register("firm.firmCode")}
+                placeholder="00505"
+              />
+              <FieldDescription>
+                {errors.firm?.firmCode?.message}
+              </FieldDescription>
+            </Field>
+
             <Field data-invalid={!!errors.firm?.diaServerCode}>
               <FieldLabel htmlFor="server-code">Sunucu Kodu</FieldLabel>
               <Input
@@ -301,9 +321,9 @@ function CreateFirmCard({
             </Field>
 
             <Field data-invalid={!!errors.firm?.diaFirmCode}>
-              <FieldLabel htmlFor="firm-code">Firma Kodu</FieldLabel>
+              <FieldLabel htmlFor="dia-firm-code">Dia Firma Kodu</FieldLabel>
               <Input
-                id="firm-code"
+                id="dia-firm-code"
                 type="number"
                 {...register("firm.diaFirmCode", { valueAsNumber: true })}
                 placeholder="1"
@@ -395,7 +415,7 @@ function CreateFirmCard({
               <Field>
                 <FieldLabel htmlFor="job-unit">Birim</FieldLabel>
                 <Select
-                  value={jobUnit}
+                  value={jobUnit ?? "hour"}
                   onValueChange={(v) =>
                     setValue(
                       "job.unit",
@@ -448,7 +468,7 @@ function CreateUserCard({ firms }: { firms: FirmSummary[] }) {
     reset,
     setValue,
     watch,
-  } = useForm<CreateUserValues>({
+  } = useForm({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
       name: "",
