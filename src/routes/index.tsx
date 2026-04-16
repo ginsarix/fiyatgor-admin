@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { SortingState } from "@tanstack/react-table";
 import { useAtomValue } from "jotai";
 import { useCallback, useState } from "react";
+import { ProductAdd } from "@/components/product-add";
 import {
   columns,
   type InsertableBarcode,
@@ -123,6 +124,9 @@ function HomeComponent() {
 
   return (
     <div className="p-5">
+      <div className="mb-3 flex justify-end">
+        <ProductAdd />
+      </div>
       <DataTable
         columns={columns}
         data={products}

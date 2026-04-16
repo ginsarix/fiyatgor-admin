@@ -12,7 +12,9 @@ export type UserSummary = {
   updatedAt: string | null;
 };
 
-export const usersColumns: ColumnDef<UserSummary>[] = [
+export const usersColumns = (
+  firmNameMap: Map<number, string>,
+): ColumnDef<UserSummary>[] => [
   {
     header: "#",
     accessorKey: "id",
@@ -26,8 +28,9 @@ export const usersColumns: ColumnDef<UserSummary>[] = [
     accessorKey: "email",
   },
   {
-    header: "Firma ID",
-    accessorKey: "firmId",
+    header: "Firma",
+    accessorFn: (row) => firmNameMap.get(row.firmId),
+    id: "firmId",
   },
   {
     header: "Rol",

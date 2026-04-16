@@ -18,7 +18,7 @@ import {
   UserCircle2Icon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,13 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { apiBaseURL, axios } from "@/config/api";
@@ -40,7 +47,7 @@ import { firmQueryKey, meQueryKey } from "@/constants/queryKeys";
 import { filterEmptyFields } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
-import { firmSchema } from "@/validations/zod-schemas";
+import { editFirmSchema } from "@/validations/zod-schemas";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,6 +71,18 @@ type Firm = {
   diaApiKey: string;
   diaFirmCode: number;
   diaPeriodCode: number | null;
+  priceField:
+    | "fiyat1"
+    | "fiyat2"
+    | "fiyat3"
+    | "fiyat4"
+    | "fiyat5"
+    | "fiyat6"
+    | "fiyat7"
+    | "fiyat8"
+    | "fiyat9"
+    | "fiyat10";
+  maxProductNameCharacters: number | null;
   createdAt: string;
   updatedAt: string | null;
 };
@@ -102,7 +121,7 @@ const userSchema = z
   );
 
 type UserFormValues = z.infer<typeof userSchema>;
-type FirmFormValues = z.infer<typeof firmSchema>;
+type FirmFormValues = z.infer<typeof editFirmSchema>;
 
 // ─── Query Options ─────────────────────────────────────────────────────────────
 
@@ -222,21 +241,26 @@ function ProfileRouteComponent() {
   });
 
   // ── Firm Form ──
+  const cachedFirm = firmQuery.data?.firm;
+
   const {
     register: registerFirm,
+    control: firmControl,
     handleSubmit: handleFirmSubmit,
     formState: { errors: firmErrors },
     reset: resetFirm,
   } = useForm({
-    resolver: zodResolver(firmSchema),
+    resolver: zodResolver(editFirmSchema),
     defaultValues: {
-      firmCode: "",
-      name: "",
-      diaUsername: "",
-      diaPassword: "",
-      diaApiKey: "",
-      diaFirmCode: 0,
-      diaPeriodCode: 0,
+      firmCode: cachedFirm?.firmCode ?? "",
+      name: cachedFirm?.name ?? "",
+      diaUsername: cachedFirm?.diaUsername ?? "",
+      diaPassword: cachedFirm?.diaPassword ?? "",
+      diaApiKey: cachedFirm?.diaApiKey ?? "",
+      diaFirmCode: cachedFirm?.diaFirmCode ?? 0,
+      diaPeriodCode: cachedFirm?.diaPeriodCode ?? 0,
+      priceField: cachedFirm?.priceField ?? "fiyat1",
+      maxProductNameCharacters: cachedFirm?.maxProductNameCharacters ?? null,
     },
   });
 
@@ -251,6 +275,8 @@ function ProfileRouteComponent() {
         diaApiKey: data.firm.diaApiKey,
         diaFirmCode: data.firm.diaFirmCode,
         diaPeriodCode: data.firm.diaPeriodCode ?? 0,
+        priceField: data.firm.priceField,
+        maxProductNameCharacters: data.firm.maxProductNameCharacters,
       });
     }
   }, [firmQuery.data, resetFirm]);
@@ -560,6 +586,56 @@ function ProfileRouteComponent() {
                   />
                   <FieldDescription>
                     {firmErrors.diaPeriodCode?.message}
+                  </FieldDescription>
+                </Field>
+
+                <Field data-invalid={!!firmErrors.priceField}>
+                  <FieldLabel htmlFor="price-field">
+                    Entegrasyon Fiyat
+                  </FieldLabel>
+                  <Controller
+                    control={firmControl}
+                    name="priceField"
+                    render={({ field }) => (
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger id="price-field">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 10 }, (_, i) => {
+                            const v = `fiyat${i + 1}`;
+                            return (
+                              <SelectItem key={v} value={v}>
+                                {v}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <FieldDescription>
+                    {firmErrors.priceField?.message}
+                  </FieldDescription>
+                </Field>
+
+                <Field data-invalid={!!firmErrors.maxProductNameCharacters}>
+                  <FieldLabel htmlFor="max-product-name-characters">
+                    Ürün Adı Uzunluğu
+                  </FieldLabel>
+                  <Input
+                    id="max-product-name-characters"
+                    type="number"
+                    {...registerFirm("maxProductNameCharacters", {
+                      valueAsNumber: true,
+                    })}
+                    placeholder="Uzunluk Sayısı"
+                  />
+                  <FieldDescription>
+                    {firmErrors.maxProductNameCharacters?.message}
                   </FieldDescription>
                 </Field>
               </div>

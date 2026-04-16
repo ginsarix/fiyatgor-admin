@@ -6,9 +6,10 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { isAxiosError } from "axios";
 import { BuildingIcon, PlusIcon, UserPlusIcon, UsersIcon } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DataTable } from "@/components/data-table";
@@ -48,6 +49,8 @@ type CreatedFirm = FirmSummary & {
   diaPeriodCode: number | null;
 };
 
+type CreatedUser = UserSummary;
+
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 const firmSchema = z.object({
@@ -66,6 +69,37 @@ const firmSchema = z.object({
     .int({ error: "Geçerli bir dönem kodu giriniz" })
     .min(0)
     .optional(),
+
+  priceField: z
+    .enum([
+      "fiyat1",
+      "fiyat2",
+      "fiyat3",
+      "fiyat4",
+      "fiyat5",
+      "fiyat6",
+      "fiyat7",
+      "fiyat8",
+      "fiyat9",
+      "fiyat10",
+    ])
+    .default("fiyat1"),
+
+  maxProductNameCharacters: z.preprocess(
+    (v) => (v === "" || v === null || Number.isNaN(v) ? null : v),
+    z
+      .number({
+        error: "Ürün adı uzunluğu geçerli bir sayı olmalıdır",
+      })
+      .int({
+        error: "Ürün adı uzunluğu geçerli bir sayı olmalıdır",
+      })
+      .positive({
+        error: "Ürün adı uzunluğu geçerli bir sayı olmalıdır",
+      })
+      .nullish()
+      .default(null),
+  ),
 });
 
 const jobSchema = z.object({
@@ -141,9 +175,9 @@ function SuperAdminRouteComponent() {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-3xl space-y-6 p-5">
+      <div className="mx-auto w-full max-w-7xl space-y-6 p-5">
         <FirmsTable firms={firms} />
-        <UsersTable users={users} />
+        <UsersTable users={users} firms={firms} />
         <CreateFirmCard
           onCreated={(firm) => {
             queryClient.setQueryData(
@@ -157,7 +191,15 @@ function SuperAdminRouteComponent() {
             );
           }}
         />
-        <CreateUserCard firms={firms} />
+        <CreateUserCard
+          firms={firms}
+          onCreated={(user) => {
+            queryClient.setQueryData(usersQueryOptions.queryKey, (prev) => ({
+              message: prev?.message ?? "",
+              users: [...(prev?.users ?? []), user],
+            }));
+          }}
+        />
       </div>
       <FirmUpdateModal />
       <FirmDeleteModal />
@@ -190,7 +232,20 @@ function FirmsTable({ firms }: { firms: FirmSummary[] }) {
 
 // ─── Users Table ──────────────────────────────────────────────────────────────
 
-function UsersTable({ users }: { users: UserSummary[] }) {
+function UsersTable({
+  users,
+  firms,
+}: {
+  users: UserSummary[];
+  firms: FirmSummary[];
+}) {
+  const firmNameMap = useMemo(
+    () => new Map(firms.map((f) => [f.id, f.name])),
+    [firms],
+  );
+
+  const columns = useMemo(() => usersColumns(firmNameMap), [firmNameMap]);
+
   return (
     <Card>
       <CardHeader>
@@ -205,7 +260,7 @@ function UsersTable({ users }: { users: UserSummary[] }) {
         </div>
       </CardHeader>
       <CardContent>
-        <DataTable columns={usersColumns} data={users} pageSize={5} />
+        <DataTable columns={columns} data={users} pageSize={5} />
       </CardContent>
     </Card>
   );
@@ -225,8 +280,7 @@ function CreateFirmCard({
     handleSubmit,
     formState: { errors },
     reset,
-    setValue,
-    watch,
+    control,
   } = useForm({
     resolver: zodResolver(createFirmSchema),
     defaultValues: {
@@ -239,11 +293,11 @@ function CreateFirmCard({
         diaApiKey: "",
         diaFirmCode: undefined,
         diaPeriodCode: undefined,
+
+        priceField: "fiyat1",
       },
     },
   });
-
-  const jobUnit = watch("job.unit");
 
   const mutation = useMutation({
     mutationFn: async (data: CreateFirmValues) =>
@@ -262,11 +316,12 @@ function CreateFirmCard({
       setWithJob(false);
       onCreated(createdFirm);
     },
-    onError: (error) => toast(error.message),
+    onError: (error) =>
+      toast(isAxiosError(error) ? error.response?.data.message : error.message),
   });
 
   return (
-    <Card>
+    <Card className="max-w-3xl mx-auto">
       <CardHeader>
         <div className="flex items-center gap-2">
           <PlusIcon className="h-4 w-4 text-muted-foreground" />
@@ -382,6 +437,51 @@ function CreateFirmCard({
                 {errors.firm?.diaPeriodCode?.message}
               </FieldDescription>
             </Field>
+
+            <Field data-invalid={!!errors.firm?.priceField}>
+              <FieldLabel htmlFor="price-field">Entegrasyon Fiyat</FieldLabel>
+              <Controller
+                control={control}
+                name="firm.priceField"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="price-field">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => {
+                        const v = `fiyat${i + 1}`;
+                        return (
+                          <SelectItem key={v} value={v}>
+                            {v}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldDescription>
+                {errors.firm?.priceField?.message}
+              </FieldDescription>
+            </Field>
+
+            <Field data-invalid={!!errors.firm?.maxProductNameCharacters}>
+              <FieldLabel htmlFor="max-product-name-characters">
+                Ürün Adı Uzunluğu
+              </FieldLabel>
+              <Input
+                id="max-product-name-characters"
+                type="number"
+                {...register("firm.maxProductNameCharacters", {
+                  valueAsNumber: true,
+                })}
+                placeholder="Uzunluk Sayısı"
+              />
+              <FieldDescription>
+                {errors.firm?.maxProductNameCharacters?.message}
+              </FieldDescription>
+            </Field>
           </div>
 
           <Separator />
@@ -414,25 +514,26 @@ function CreateFirmCard({
 
               <Field>
                 <FieldLabel htmlFor="job-unit">Birim</FieldLabel>
-                <Select
-                  value={jobUnit ?? "hour"}
-                  onValueChange={(v) =>
-                    setValue(
-                      "job.unit",
-                      v as NonNullable<CreateFirmValues["job"]>["unit"],
-                    )
-                  }
-                >
-                  <SelectTrigger id="job-unit">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="minute">Dakikada bir</SelectItem>
-                    <SelectItem value="hour">Saatte bir</SelectItem>
-                    <SelectItem value="day">Günde bir</SelectItem>
-                    <SelectItem value="month">Ayda bir</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={control}
+                  name="job.unit"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? "hour"}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger id="job-unit">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="minute">Dakikada bir</SelectItem>
+                        <SelectItem value="hour">Saatte bir</SelectItem>
+                        <SelectItem value="day">Günde bir</SelectItem>
+                        <SelectItem value="month">Ayda bir</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
             </div>
           )}
@@ -460,14 +561,19 @@ function CreateFirmCard({
 
 // ─── Create User Card ──────────────────────────────────────────────────────────
 
-function CreateUserCard({ firms }: { firms: FirmSummary[] }) {
+function CreateUserCard({
+  firms,
+  onCreated,
+}: {
+  firms: FirmSummary[];
+  onCreated: (user: CreatedUser) => void;
+}) {
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-    setValue,
-    watch,
+    control,
   } = useForm({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
@@ -479,23 +585,26 @@ function CreateUserCard({ firms }: { firms: FirmSummary[] }) {
     },
   });
 
-  const selectedRole = watch("role");
-  const selectedFirmId = watch("firmId");
-
   const mutation = useMutation({
     mutationFn: async (data: CreateUserValues) =>
-      (await axios.post<{ message: string }>("/superadmin/users", data)).data,
-    onSuccess: () => {
+      (
+        await axios.post<{ message: string; createdUser: CreatedUser }>(
+          "/superadmin/users",
+          data,
+        )
+      ).data,
+    onSuccess: (data) => {
       toast("Kullanıcı oluşturuldu", {
         description: "Yeni kullanıcı başarıyla sisteme eklendi.",
       });
       reset();
+      onCreated(data.createdUser);
     },
     onError: (error) => toast(error.message),
   });
 
   return (
-    <Card>
+    <Card className="max-w-3xl mx-auto">
       <CardHeader>
         <div className="flex items-center gap-2">
           <UserPlusIcon className="h-4 w-4 text-muted-foreground" />
@@ -547,43 +656,50 @@ function CreateUserCard({ firms }: { firms: FirmSummary[] }) {
 
             <Field data-invalid={!!errors.role}>
               <FieldLabel htmlFor="user-role">Rol</FieldLabel>
-              <Select
-                value={selectedRole}
-                onValueChange={(v) =>
-                  setValue("role", v as CreateUserValues["role"])
-                }
-              >
-                <SelectTrigger id="user-role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="superadmin">Süper Admin</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="role"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="user-role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="superadmin">Süper Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
               <FieldDescription>{errors.role?.message}</FieldDescription>
             </Field>
 
             <Field className="col-span-2" data-invalid={!!errors.firmId}>
               <FieldLabel htmlFor="user-firm">Firma</FieldLabel>
-              <Select
-                value={selectedFirmId?.toString()}
-                onValueChange={(v) => setValue("firmId", Number(v))}
-              >
-                <SelectTrigger id="user-firm">
-                  <SelectValue placeholder="Firma seçiniz" />
-                </SelectTrigger>
-                <SelectContent>
-                  {firms.map((firm) => (
-                    <SelectItem key={firm.id} value={firm.id.toString()}>
-                      {firm.name}
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        ({firm.diaServerCode})
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="firmId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value?.toString()}
+                    onValueChange={(v) => field.onChange(Number(v))}
+                  >
+                    <SelectTrigger id="user-firm">
+                      <SelectValue placeholder="Firma seçiniz" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {firms.map((firm) => (
+                        <SelectItem key={firm.id} value={firm.id.toString()}>
+                          {firm.name}
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({firm.diaServerCode})
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
               <FieldDescription>{errors.firmId?.message}</FieldDescription>
             </Field>
           </div>

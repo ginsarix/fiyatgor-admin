@@ -85,6 +85,12 @@ export function DataTable<TData, TValue>({
   // ─── Search ───────────────────────────────────────────────────────────────
 
   const [searchInput, setSearchInput] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    searchInputRef.current?.focus();
+  });
+
   const onSearchRef = useRef(onSearch);
   useEffect(() => {
     onSearchRef.current = onSearch;
@@ -93,7 +99,7 @@ export function DataTable<TData, TValue>({
   useEffect(() => {
     const timer = setTimeout(() => {
       onSearchRef.current(searchInput);
-    }, 400);
+    }, 550);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
@@ -104,10 +110,11 @@ export function DataTable<TData, TValue>({
         <SearchIcon className="text-muted-foreground size-4 shrink-0" />
         <input
           type="search"
+          ref={searchInputRef}
           placeholder="Ürün adı veya stok kodu ara..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="w-full bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
+          className="w-full text-sm placeholder:text-muted-foreground focus:outline-none"
         />
       </div>
 

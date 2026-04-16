@@ -7,14 +7,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,45 +56,47 @@ function LoginComponent() {
   const [passwordVisibility, setPasswordVisibility] = useState(false);
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Hesabınıza giriş yapınız</CardTitle>
-        <CardDescription>
-          E-posta ve şifrenizi girip giriş yapabilirsiniz
-        </CardDescription>
-        {loginMutation.isError && (
-          <div className="bg-red-500 p-4 rounded-lg mt-2">
-            {isAxiosError(loginMutation.error)
-              ? loginMutation.error.response?.data.message
-              : "Beklenmeyen bir hata oluştu"}
-          </div>
-        )}
-      </CardHeader>
+    <div className="w-full max-w-xs space-y-8">
+      {/* Identity mark */}
+      <div className="space-y-1">
+        <div className="font-mono text-xl font-bold tracking-tight">
+          <span className="text-primary">▪</span>{" "}fiyatgör
+        </div>
+        <p className="font-mono text-xs text-muted-foreground uppercase tracking-[0.18em]">
+          Yönetici Girişi
+        </p>
+      </div>
 
-      <form noValidate onSubmit={onSubmit}>
-        <CardContent className="grid gap-1.5">
-          <Field className="gap-1.5" data-invalid={!!errors.email}>
-            <FieldLabel htmlFor="email">E-posta</FieldLabel>
-            <Input
-              id="email"
-              {...register("email")}
-              placeholder="E-posta"
-              type="email"
-              autoComplete="work email"
-              required
-              aria-invalid={!!errors.email}
-            />
-            <FieldDescription className="">
-              {errors.email?.message}
-            </FieldDescription>
-          </Field>
-          {/* not putting this in the inlined field cuz this label should not be inline */}
+      {loginMutation.isError && (
+        <div className="border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          {isAxiosError(loginMutation.error)
+            ? loginMutation.error.response?.data.message
+            : "Beklenmeyen bir hata oluştu"}
+        </div>
+      )}
+
+      <form noValidate onSubmit={onSubmit} className="space-y-4">
+        <Field className="gap-1.5" data-invalid={!!errors.email}>
+          <FieldLabel htmlFor="email">E-posta</FieldLabel>
+          <Input
+            id="email"
+            {...register("email")}
+            placeholder="ornek@mail.com"
+            type="email"
+            autoComplete="work email"
+            required
+            aria-invalid={!!errors.email}
+          />
+          <FieldDescription>{errors.email?.message}</FieldDescription>
+        </Field>
+
+        <div className="space-y-1.5">
           <Label
             htmlFor="password"
             className={cn(!!errors.password && "text-destructive")}
           >
             Parola
-          </Label>{" "}
+          </Label>
           <Field
             data-invalid={!!errors.password}
             orientation="horizontal"
@@ -111,7 +105,7 @@ function LoginComponent() {
             <Input
               id="password"
               {...register("password")}
-              placeholder="Parola"
+              placeholder="••••••••"
               type={passwordVisibility ? "text" : "password"}
               autoComplete="current-password"
               required
@@ -129,9 +123,10 @@ function LoginComponent() {
             </Button>
           </Field>
           <FieldDescription>{errors.password?.message}</FieldDescription>
-        </CardContent>
-        <CardFooter className="mt-5">
-          <Button className="cursor-pointer ml-auto" type="submit">
+        </div>
+
+        <div className="pt-2">
+          <Button className="w-full cursor-pointer" type="submit">
             {!loginMutation.isPending ? (
               <>
                 Giriş Yap
@@ -144,8 +139,8 @@ function LoginComponent() {
               </>
             )}
           </Button>
-        </CardFooter>
+        </div>
       </form>
-    </Card>
+    </div>
   );
 }

@@ -25,10 +25,10 @@ import {
   selectedFirmMutationModeAtom,
 } from "@/state/atoms/firm";
 import type { Firm } from "@/types/firm";
-import { firmSchema } from "@/validations/zod-schemas";
+import { editFirmSchema } from "@/validations/zod-schemas";
 import { Separator } from "./ui/separator";
 
-type FirmFormValues = z.infer<typeof firmSchema>;
+type FirmFormValues = z.infer<typeof editFirmSchema>;
 
 export function FirmUpdateModal() {
   const queryClient = useQueryClient();
@@ -79,7 +79,7 @@ export function FirmUpdateModal() {
     formState: { errors },
     reset,
   } = useForm({
-    resolver: zodResolver(firmSchema),
+    resolver: zodResolver(editFirmSchema),
     defaultValues: {
       name: "",
       diaUsername: "",

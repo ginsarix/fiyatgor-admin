@@ -12,7 +12,6 @@ import { Home, Menu, Terminal } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { AvatarDropdown } from "@/components/ui/avatar-dropdown";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Toaster } from "@/components/ui/sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { axios } from "@/config/api";
@@ -56,7 +55,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
   const location = useLocation();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(true);
   const [session, setSession] = useAtom(sessionAtom);
 
   const navigate = Route.useNavigate();
@@ -99,56 +98,27 @@ function RootComponent() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* AppBar / Header */}
-      <header className="shrink-0 sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
-        <div className="flex h-14 items-center">
+      <header className="shrink-0 sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="flex h-12 items-center">
           {session && (
-            <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="mx-2">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Toggle menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64">
-                <nav className="flex flex-col gap-4 mt-10">
-                  <Link
-                    to="/"
-                    onClick={() => setDrawerOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
-                      location.pathname === "/"
-                        ? "bg-accent text-accent-foreground"
-                        : "hover:bg-accent hover:text-accent-foreground",
-                    )}
-                  >
-                    <Home className="h-4 w-4" />
-                    Ana Sayfa
-                  </Link>
-
-                  <Link
-                    to="/commands"
-                    onClick={() => setDrawerOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
-                      location.pathname === "/commands"
-                        ? "bg-accent text-accent-foreground"
-                        : "hover:bg-accent hover:text-accent-foreground",
-                    )}
-                  >
-                    <Terminal className="h-4 w-4" />
-                    Komutlar
-                  </Link>
-                </nav>
-              </SheetContent>
-            </Sheet>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mx-2 h-8 w-8 shrink-0"
+              onClick={() => setDrawerOpen((prev) => !prev)}
+            >
+              <Menu className="h-4 w-4" />
+              <span className="sr-only">Toggle menu</span>
+            </Button>
           )}
 
-          <h1 className={cn("text-lg font-semibold", !session && "ms-5")}>
-            Fiyatgör Admin
+          <h1 className={cn("font-mono text-sm font-bold tracking-tight select-none", !session && "ms-5")}>
+            <span className="text-primary">▪</span>{" "}fiyatgör
+            <span className="text-muted-foreground font-normal"> / admin</span>
           </h1>
 
           {session && (
-            <div className="ms-auto me-4 shrink-0">
+            <div className="ms-auto me-3 shrink-0">
               <AvatarDropdown
                 role={session.role}
                 initials={getInitials(session.name)}
@@ -159,12 +129,61 @@ function RootComponent() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 grid place-items-center">
-        <Suspense fallback={<Spinner />}>
-          <Outlet />
-        </Suspense>
-      </main>
+      <div className="flex flex-1">
+        {/* Fixed Sidebar */}
+        {session && (
+          <aside
+            className={cn(
+              "fixed top-12 left-0 h-[calc(100vh-3rem)] w-56 border-r bg-sidebar z-40 transition-transform duration-200",
+              drawerOpen ? "translate-x-0" : "-translate-x-full",
+            )}
+          >
+            <nav className="flex flex-col gap-0.5 px-2 pt-4">
+              <p className="px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/50">
+                Navigasyon
+              </p>
+
+              <Link
+                to="/"
+                className={cn(
+                  "flex items-center gap-2.5 border-l-2 px-3 py-1.5 font-mono text-xs font-normal uppercase tracking-widest transition-colors",
+                  location.pathname === "/"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
+                )}
+              >
+                <Home className="h-3.5 w-3.5 shrink-0" />
+                Ana Sayfa
+              </Link>
+
+              <Link
+                to="/commands"
+                className={cn(
+                  "flex items-center gap-2.5 border-l-2 px-3 py-1.5 font-mono text-xs font-normal uppercase tracking-widest transition-colors",
+                  location.pathname === "/commands"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
+                )}
+              >
+                <Terminal className="h-3.5 w-3.5 shrink-0" />
+                Komutlar
+              </Link>
+            </nav>
+          </aside>
+        )}
+
+        {/* Main Content */}
+        <main
+          className={cn(
+            "flex-1 grid place-items-center transition-[margin] duration-200",
+            session && drawerOpen && "ml-56",
+          )}
+        >
+          <Suspense fallback={<Spinner />}>
+            <Outlet />
+          </Suspense>
+        </main>
+      </div>
       <Toaster />
     </div>
   );
