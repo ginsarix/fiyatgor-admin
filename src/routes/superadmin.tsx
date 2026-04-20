@@ -8,7 +8,7 @@ import {
 import { createFileRoute } from "@tanstack/react-router";
 import { isAxiosError } from "axios";
 import { BuildingIcon, PlusIcon, UserPlusIcon, UsersIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -39,12 +39,14 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { type UserSummary, usersColumns } from "@/components/users-columns";
 import { axios } from "@/config/api";
+import { FIRM_PLACEHOLDERS } from "@/constants/firmFormPlaceholders";
 import { firmsQueryKey, superAdminUsersQueryKey } from "@/constants/queryKeys";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type CreatedFirm = FirmSummary & {
-  diaUsername: string;
+  diaUsername: string | null;
   diaApiKey: string | null;
   diaPeriodCode: number | null;
 };
@@ -53,22 +55,37 @@ type CreatedUser = UserSummary;
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
+const emptyToUndefined = (val: unknown) => {
+  if (val === "" || val === null || val === undefined) return undefined;
+  if (typeof val === "number" && Number.isNaN(val)) return undefined;
+  if (typeof val === "string" && val.trim() === "") return undefined;
+  return val;
+};
+
 const firmSchema = z.object({
   firmCode: z.string().min(1, { error: "Firma kodu boş olamaz" }),
   name: z.string().min(1, { error: "Firma adı boş olamaz" }),
-  diaServerCode: z.string().min(1, { error: "Sunucu kodu boş olamaz" }),
-  diaUsername: z.string().min(1, { error: "DIA kullanıcı adı boş olamaz" }),
-  diaPassword: z.string().min(1, { error: "DIA şifresi boş olamaz" }),
+  diaServerCode: z.string().optional(),
+  diaUsername: z.string().optional(),
+  diaPassword: z.string().optional(),
   diaApiKey: z.string().optional(),
-  diaFirmCode: z
-    .number({ error: "Dia firma kodu boş olamaz" })
-    .int({ error: "Geçerli bir dia firma kodu giriniz" })
-    .positive({ error: "Geçerli bir dia firma kodu giriniz" }),
-  diaPeriodCode: z
-    .number({ error: "Dönem kodu boş olamaz" })
-    .int({ error: "Geçerli bir dönem kodu giriniz" })
-    .min(0)
-    .optional(),
+  diaFirmCode: z.preprocess(
+    emptyToUndefined,
+    z
+      .number({ error: "Dia firma kodu boş olamaz" })
+      .int({ error: "Geçerli bir dia firma kodu giriniz" })
+      .positive({ error: "Geçerli bir dia firma kodu giriniz" })
+      .optional(),
+  ),
+
+  diaPeriodCode: z.preprocess(
+    emptyToUndefined,
+    z
+      .number({ error: "Dönem kodu boş olamaz" })
+      .int({ error: "Geçerli bir dönem kodu giriniz" })
+      .min(0)
+      .optional(),
+  ),
 
   priceField: z
     .enum([
@@ -281,6 +298,7 @@ function CreateFirmCard({
     formState: { errors },
     reset,
     control,
+    watch,
   } = useForm({
     resolver: zodResolver(createFirmSchema),
     defaultValues: {
@@ -291,13 +309,28 @@ function CreateFirmCard({
         diaUsername: "",
         diaPassword: "",
         diaApiKey: "",
-        diaFirmCode: undefined,
-        diaPeriodCode: undefined,
+        diaFirmCode: "",
+        diaPeriodCode: "",
 
         priceField: "fiyat1",
       },
     },
   });
+
+  const diaServerCode = watch("firm.diaServerCode");
+  const diaFirmCode = watch("firm.diaFirmCode");
+  const diaUsername = watch("firm.diaUsername");
+  const diaPassword = watch("firm.diaPassword");
+  const hasDiaCredentials = !!(
+    diaServerCode?.trim() &&
+    diaFirmCode &&
+    diaUsername?.trim() &&
+    diaPassword?.trim()
+  );
+
+  useEffect(() => {
+    if (!hasDiaCredentials) setWithJob(false);
+  }, [hasDiaCredentials]);
 
   const mutation = useMutation({
     mutationFn: async (data: CreateFirmValues) =>
@@ -344,7 +377,7 @@ function CreateFirmCard({
               <Input
                 id="firm-name"
                 {...register("firm.name")}
-                placeholder="Örnek A.Ş."
+                placeholder={FIRM_PLACEHOLDERS.name}
               />
               <FieldDescription>{errors.firm?.name?.message}</FieldDescription>
             </Field>
@@ -356,7 +389,7 @@ function CreateFirmCard({
               <Input
                 id="firm-code"
                 {...register("firm.firmCode")}
-                placeholder="00505"
+                placeholder={FIRM_PLACEHOLDERS.firmCode}
               />
               <FieldDescription>
                 {errors.firm?.firmCode?.message}
@@ -368,7 +401,7 @@ function CreateFirmCard({
               <Input
                 id="server-code"
                 {...register("firm.diaServerCode")}
-                placeholder="SRV001"
+                placeholder={FIRM_PLACEHOLDERS.diaServerCode}
               />
               <FieldDescription>
                 {errors.firm?.diaServerCode?.message}
@@ -376,12 +409,12 @@ function CreateFirmCard({
             </Field>
 
             <Field data-invalid={!!errors.firm?.diaFirmCode}>
-              <FieldLabel htmlFor="dia-firm-code">Dia Firma Kodu</FieldLabel>
+              <FieldLabel htmlFor="dia-firm-code">DIA Firma Kodu</FieldLabel>
               <Input
                 id="dia-firm-code"
                 type="number"
-                {...register("firm.diaFirmCode", { valueAsNumber: true })}
-                placeholder="1"
+                {...register("firm.diaFirmCode")}
+                placeholder={FIRM_PLACEHOLDERS.diaFirmCode}
               />
               <FieldDescription>
                 {errors.firm?.diaFirmCode?.message}
@@ -393,7 +426,7 @@ function CreateFirmCard({
               <Input
                 id="dia-username"
                 {...register("firm.diaUsername")}
-                placeholder="kullanici_adi"
+                placeholder={FIRM_PLACEHOLDERS.diaUsername}
               />
               <FieldDescription>
                 {errors.firm?.diaUsername?.message}
@@ -406,7 +439,7 @@ function CreateFirmCard({
                 id="dia-password"
                 type="password"
                 {...register("firm.diaPassword")}
-                placeholder="••••••••"
+                placeholder={FIRM_PLACEHOLDERS.diaPassword}
               />
               <FieldDescription>
                 {errors.firm?.diaPassword?.message}
@@ -418,7 +451,7 @@ function CreateFirmCard({
               <Input
                 id="dia-api-key"
                 {...register("firm.diaApiKey")}
-                placeholder="api-key"
+                placeholder={FIRM_PLACEHOLDERS.diaApiKey}
               />
               <FieldDescription>
                 {errors.firm?.diaApiKey?.message}
@@ -430,8 +463,8 @@ function CreateFirmCard({
               <Input
                 id="period-code"
                 type="number"
-                {...register("firm.diaPeriodCode", { valueAsNumber: true })}
-                placeholder="0"
+                {...register("firm.diaPeriodCode")}
+                placeholder={FIRM_PLACEHOLDERS.diaPeriodCode}
               />
               <FieldDescription>
                 {errors.firm?.diaPeriodCode?.message}
@@ -476,7 +509,7 @@ function CreateFirmCard({
                 {...register("firm.maxProductNameCharacters", {
                   valueAsNumber: true,
                 })}
-                placeholder="Uzunluk Sayısı"
+                placeholder={FIRM_PLACEHOLDERS.maxProductNameCharacters}
               />
               <FieldDescription>
                 {errors.firm?.maxProductNameCharacters?.message}
@@ -490,10 +523,24 @@ function CreateFirmCard({
             <Checkbox
               id="with-job"
               checked={withJob}
+              disabled={!hasDiaCredentials}
               onCheckedChange={(v) => setWithJob(!!v)}
             />
-            <Label htmlFor="with-job" className="cursor-pointer text-sm">
+            <Label
+              htmlFor="with-job"
+              className={cn(
+                "text-sm",
+                hasDiaCredentials
+                  ? "cursor-pointer"
+                  : "cursor-not-allowed text-muted-foreground",
+              )}
+            >
               Arka plan görevi ekle
+              {!hasDiaCredentials && (
+                <span className="ml-1 text-xs">
+                  (DIA sunucu kodu ve firma kodu gerekli)
+                </span>
+              )}
             </Label>
           </div>
 
@@ -692,7 +739,7 @@ function CreateUserCard({
                         <SelectItem key={firm.id} value={firm.id.toString()}>
                           {firm.name}
                           <span className="ml-2 text-xs text-muted-foreground">
-                            ({firm.diaServerCode})
+                            ({firm.firmCode})
                           </span>
                         </SelectItem>
                       ))}

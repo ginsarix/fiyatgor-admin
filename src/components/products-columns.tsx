@@ -33,9 +33,6 @@ export type ProductWithBarcodes = InsertableProduct & {
   barcodes: InsertableBarcode[];
 };
 
-// Keep old alias for any other consumers
-export type Product = InsertableProduct;
-
 // ─── Barcodes Cell ────────────────────────────────────────────────────────────
 
 function BarcodesCell({

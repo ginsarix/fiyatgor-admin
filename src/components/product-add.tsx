@@ -97,7 +97,7 @@ export function ProductAdd() {
 
   const deleteStale = watch("deleteStale");
 
-  const { serverCode } = useAtomValue(sessionAtom)!;
+  const { firmCode } = useAtomValue(sessionAtom)!;
 
   const mutation = useMutation({
     mutationFn: async (data: FormValues) => {
@@ -117,7 +117,7 @@ export function ProductAdd() {
             products,
             deleteStale: data.deleteStale,
           },
-          { params: { serverCode } },
+          { params: { firmCode } },
         )
       ).data;
     },

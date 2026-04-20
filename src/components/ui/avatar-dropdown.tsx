@@ -31,7 +31,7 @@ export function AvatarDropdown({
   role,
 }: {
   initials: string;
-  logOutFn: () => unknown;
+  logOutFn: () => void;
   role: "admin" | "superadmin";
 }) {
   const { theme, setTheme } = useTheme();

@@ -43,11 +43,13 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { apiBaseURL, axios } from "@/config/api";
 import { catalogMutationKey } from "@/constants/mutationKeys";
+import { FIRM_PLACEHOLDERS } from "@/constants/firmFormPlaceholders";
 import { firmQueryKey, meQueryKey } from "@/constants/queryKeys";
 import { filterEmptyFields } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
 import { editFirmSchema } from "@/validations/zod-schemas";
+import type { Firm } from "@/types/firm";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,31 +63,6 @@ type User = {
   updatedAt: string | null;
 };
 
-type Firm = {
-  id: number;
-  firmCode: string;
-  name: string;
-  diaServerCode: string;
-  diaUsername: string;
-  diaPassword: string;
-  diaApiKey: string;
-  diaFirmCode: number;
-  diaPeriodCode: number | null;
-  priceField:
-    | "fiyat1"
-    | "fiyat2"
-    | "fiyat3"
-    | "fiyat4"
-    | "fiyat5"
-    | "fiyat6"
-    | "fiyat7"
-    | "fiyat8"
-    | "fiyat9"
-    | "fiyat10";
-  maxProductNameCharacters: number | null;
-  createdAt: string;
-  updatedAt: string | null;
-};
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -125,25 +102,25 @@ type FirmFormValues = z.infer<typeof editFirmSchema>;
 
 // ─── Query Options ─────────────────────────────────────────────────────────────
 
-const meQueryOptions = (serverCode: string) =>
+const meQueryOptions = (firmCode: string) =>
   queryOptions({
     queryKey: [meQueryKey],
     queryFn: async () =>
       (
         await axios.get<{ message: string; user: User }>("/admin/me", {
-          params: { serverCode },
+          params: { firmCode },
         })
       ).data,
     retry: false,
   });
 
-const firmQueryOptions = (serverCode: string) =>
+const firmQueryOptions = (firmCode: string) =>
   queryOptions({
     queryKey: [firmQueryKey],
     queryFn: async () =>
       (
         await axios.get<{ message: string; firm: Firm }>("/admin/firm", {
-          params: { serverCode },
+          params: { firmCode },
         })
       ).data,
     retry: false,
@@ -153,10 +130,10 @@ const firmQueryOptions = (serverCode: string) =>
 
 export const Route = createFileRoute("/settings")({
   loader: async ({ context }) => {
-    const { serverCode } = store.get(sessionAtom)!;
+    const { firmCode } = store.get(sessionAtom)!;
     await Promise.all([
-      context.queryClient.prefetchQuery(meQueryOptions(serverCode)),
-      context.queryClient.prefetchQuery(firmQueryOptions(serverCode)),
+      context.queryClient.prefetchQuery(meQueryOptions(firmCode)),
+      context.queryClient.prefetchQuery(firmQueryOptions(firmCode)),
     ]);
   },
   pendingComponent: () => <Spinner className="size-6" />,
@@ -166,11 +143,11 @@ export const Route = createFileRoute("/settings")({
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 function ProfileRouteComponent() {
-  const { serverCode } = useAtomValue(sessionAtom)!;
+  const { firmCode } = useAtomValue(sessionAtom)!;
   const queryClient = useQueryClient();
 
-  const meQuery = useQuery(meQueryOptions(serverCode));
-  const firmQuery = useQuery(firmQueryOptions(serverCode));
+  const meQuery = useQuery(meQueryOptions(firmCode));
+  const firmQuery = useQuery(firmQueryOptions(firmCode));
 
   const user =
     meQuery.data && "user" in meQuery.data ? meQuery.data.user : null;
@@ -219,7 +196,7 @@ function ProfileRouteComponent() {
                 }
               : {}),
           },
-          { params: { serverCode } },
+          { params: { firmCode } },
         )
       ).data,
     onSuccess: ({ user: updatedUser }) => {
@@ -270,11 +247,11 @@ function ProfileRouteComponent() {
       resetFirm({
         firmCode: data.firm.firmCode,
         name: data.firm.name,
-        diaUsername: data.firm.diaUsername,
-        diaPassword: data.firm.diaPassword,
-        diaApiKey: data.firm.diaApiKey,
-        diaFirmCode: data.firm.diaFirmCode,
-        diaPeriodCode: data.firm.diaPeriodCode ?? 0,
+        diaUsername: data.firm.diaUsername ?? "",
+        diaPassword: data.firm.diaPassword ?? "",
+        diaApiKey: data.firm.diaApiKey ?? "",
+        diaFirmCode: data.firm.diaFirmCode ?? undefined,
+        diaPeriodCode: data.firm.diaPeriodCode ?? undefined,
         priceField: data.firm.priceField,
         maxProductNameCharacters: data.firm.maxProductNameCharacters,
       });
@@ -294,7 +271,7 @@ function ProfileRouteComponent() {
         await axios.post<{ filename: string; message: string }>(
           "/admin/catalog",
           formData,
-          { params: { serverCode } },
+          { params: { firmCode } },
         )
       ).data;
     },
@@ -315,7 +292,7 @@ function ProfileRouteComponent() {
         await axios.patch<{ message: string; updatedFirm: Firm }>(
           "/admin/firm",
           payload,
-          { params: { serverCode } },
+          { params: { firmCode } },
         )
       ).data;
     },
@@ -490,7 +467,7 @@ function ProfileRouteComponent() {
               <Input
                 id="firm-name"
                 {...registerFirm("name")}
-                placeholder="Firma adı"
+                placeholder={FIRM_PLACEHOLDERS.name}
               />
               <FieldDescription>{firmErrors.name?.message}</FieldDescription>
             </Field>
@@ -502,26 +479,38 @@ function ProfileRouteComponent() {
                 DIA Bağlantı Ayarları
               </p>
               <div className="grid grid-cols-2 gap-4">
-                {/* Sunucu kodu read-only, session'dan geliyor */}
                 <Field>
                   <FieldLabel htmlFor="dia-server-code">Sunucu Kodu</FieldLabel>
                   <Input
                     id="dia-server-code"
-                    value={serverCode}
+                    value={cachedFirm?.diaServerCode ?? ""}
                     disabled
                     className="text-muted-foreground"
                   />
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="firm-code">
+                  <FieldLabel htmlFor="firm-code-readonly">
                     Firma Kodu (tanımlayıcı)
+                  </FieldLabel>
+                  <Input
+                    id="firm-code-readonly"
+                    value={cachedFirm?.firmCode ?? ""}
+                    disabled
+                    className="text-muted-foreground"
+                  />
+                </Field>
+
+                <Field data-invalid={!!firmErrors.firmCode}>
+                  <FieldLabel htmlFor="firm-code">
+                    Yeni Firma Kodu
                   </FieldLabel>
                   <Input
                     id="firm-code"
                     {...registerFirm("firmCode")}
-                    placeholder="00505"
+                    placeholder={FIRM_PLACEHOLDERS.firmCode}
                   />
+                  <FieldDescription>{firmErrors.firmCode?.message}</FieldDescription>
                 </Field>
 
                 <Field data-invalid={!!firmErrors.diaUsername}>
@@ -531,7 +520,7 @@ function ProfileRouteComponent() {
                   <Input
                     id="dia-username"
                     {...registerFirm("diaUsername")}
-                    placeholder="kullanici_adi"
+                    placeholder={FIRM_PLACEHOLDERS.diaUsername}
                   />
                   <FieldDescription>
                     {firmErrors.diaUsername?.message}
@@ -544,7 +533,7 @@ function ProfileRouteComponent() {
                     id="dia-password"
                     type="password"
                     {...registerFirm("diaPassword")}
-                    placeholder="••••••••"
+                    placeholder={FIRM_PLACEHOLDERS.diaPassword}
                   />
                   <FieldDescription>
                     {firmErrors.diaPassword?.message}
@@ -556,7 +545,7 @@ function ProfileRouteComponent() {
                   <Input
                     id="dia-api-key"
                     {...registerFirm("diaApiKey")}
-                    placeholder="api-key-here"
+                    placeholder={FIRM_PLACEHOLDERS.diaApiKey}
                   />
                   <FieldDescription>
                     {firmErrors.diaApiKey?.message}
@@ -569,7 +558,7 @@ function ProfileRouteComponent() {
                     id="dia-firm-code"
                     type="number"
                     {...registerFirm("diaFirmCode")}
-                    placeholder="0"
+                    placeholder={FIRM_PLACEHOLDERS.diaFirmCode}
                   />
                   <FieldDescription>
                     {firmErrors.diaFirmCode?.message}
@@ -582,7 +571,7 @@ function ProfileRouteComponent() {
                     id="dia-period-code"
                     type="number"
                     {...registerFirm("diaPeriodCode")}
-                    placeholder="0"
+                    placeholder={FIRM_PLACEHOLDERS.diaPeriodCode}
                   />
                   <FieldDescription>
                     {firmErrors.diaPeriodCode?.message}
@@ -632,7 +621,7 @@ function ProfileRouteComponent() {
                     {...registerFirm("maxProductNameCharacters", {
                       valueAsNumber: true,
                     })}
-                    placeholder="Uzunluk Sayısı"
+                    placeholder={FIRM_PLACEHOLDERS.maxProductNameCharacters}
                   />
                   <FieldDescription>
                     {firmErrors.maxProductNameCharacters?.message}
@@ -689,7 +678,7 @@ function ProfileRouteComponent() {
 
           <div className="flex items-center justify-between pt-1">
             <a
-              href={`${apiBaseURL}/servers/${serverCode}/catalog`}
+              href={`${apiBaseURL}/firms/${cachedFirm?.firmCode}/catalog`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline"

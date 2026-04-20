@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   createRootRouteWithContext,
   Link,
@@ -6,7 +7,6 @@ import {
   redirect,
   useLocation,
 } from "@tanstack/react-router";
-// import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useAtom } from "jotai";
 import { Home, Menu, Terminal } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { axios } from "@/config/api";
+import { firmQueryKey } from "@/constants/queryKeys";
 import { cn, getInitials } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
@@ -57,6 +58,24 @@ function RootComponent() {
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [session, setSession] = useAtom(sessionAtom);
+
+  const firmQuery = useQuery({
+    queryKey: [firmQueryKey],
+    queryFn: async () =>
+      (
+        await axios.get<{
+          message: string;
+          firm: { diaServerCode: string | null; diaFirmCode: number | null };
+        }>("/admin/firm", { params: { firmCode: session?.firmCode } })
+      ).data,
+    enabled: !!session,
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const hasDiaCredentials = !!(
+    firmQuery.data?.firm?.diaServerCode && firmQuery.data?.firm?.diaFirmCode
+  );
 
   const navigate = Route.useNavigate();
 
@@ -156,18 +175,20 @@ function RootComponent() {
                 Ana Sayfa
               </Link>
 
-              <Link
-                to="/commands"
-                className={cn(
-                  "flex items-center gap-2.5 border-l-2 px-3 py-1.5 font-mono text-xs font-normal uppercase tracking-widest transition-colors",
-                  location.pathname === "/commands"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
-                )}
-              >
-                <Terminal className="h-3.5 w-3.5 shrink-0" />
-                Komutlar
-              </Link>
+              {hasDiaCredentials && (
+                <Link
+                  to="/commands"
+                  className={cn(
+                    "flex items-center gap-2.5 border-l-2 px-3 py-1.5 font-mono text-xs font-normal uppercase tracking-widest transition-colors",
+                    location.pathname === "/commands"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
+                  )}
+                >
+                  <Terminal className="h-3.5 w-3.5 shrink-0" />
+                  Komutlar
+                </Link>
+              )}
             </nav>
           </aside>
         )}

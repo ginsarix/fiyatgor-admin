@@ -12,8 +12,8 @@ export type FirmSummary = {
   id: number;
   firmCode: string;
   name: string;
-  diaServerCode: string;
-  diaFirmCode: number;
+  diaServerCode: string | null;
+  diaFirmCode: number | null;
   createdAt: string;
   updatedAt: string | null;
 };

@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import { ClockIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -33,7 +33,7 @@ import {
   jobMutationKey,
   productsSyncMutationKey,
 } from "@/constants/mutationKeys";
-import { jobQueryKey, productsQueryKey } from "@/constants/queryKeys";
+import { firmQueryKey, jobQueryKey, productsQueryKey } from "@/constants/queryKeys";
 import { cn, timeAgo } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
@@ -47,7 +47,21 @@ type Job = {
   createdAt: string;
   updatedAt: string | null;
 };
-const jobQueryOptions = (serverCode: string) =>
+const firmQueryOptions = (firmCode: string) =>
+  queryOptions({
+    queryKey: [firmQueryKey],
+    queryFn: async () =>
+      (
+        await axios.get<{
+          message: string;
+          firm: { diaServerCode: string | null; diaFirmCode: number | null };
+        }>("/admin/firm", { params: { firmCode } })
+      ).data,
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+  });
+
+const jobQueryOptions = (firmCode: string) =>
   queryOptions({
     queryKey: [jobQueryKey],
     queryFn: async () => {
@@ -55,7 +69,7 @@ const jobQueryOptions = (serverCode: string) =>
         await axios.get<{ message: string; job: Job } | { message: string }>(
           "/admin/jobs",
           {
-            params: { serverCode },
+            params: { firmCode },
           },
         )
       ).data;
@@ -65,19 +79,24 @@ const jobQueryOptions = (serverCode: string) =>
 
 export const Route = createFileRoute("/commands")({
   loader: async ({ context }) => {
-    await context.queryClient.prefetchQuery(
-      jobQueryOptions(
-        // can't be null/undef because we're using authenticated routes
-        store.get(sessionAtom)!.serverCode,
-      ),
+    const { firmCode } = store.get(sessionAtom)!;
+
+    const firmData = await context.queryClient.ensureQueryData(
+      firmQueryOptions(firmCode),
     );
+
+    if (!firmData.firm?.diaServerCode || !firmData.firm?.diaFirmCode) {
+      throw redirect({ to: "/settings" });
+    }
+
+    await context.queryClient.prefetchQuery(jobQueryOptions(firmCode));
   },
   pendingComponent: () => <Spinner className="size-6" />,
   component: CommandsRouteComponent,
 });
 
 function CommandsRouteComponent() {
-  const { serverCode } = useAtomValue(sessionAtom)!;
+  const { firmCode } = useAtomValue(sessionAtom)!;
   const queryClient = useQueryClient();
 
   const productsSyncMutation = useMutation({
@@ -94,7 +113,7 @@ function CommandsRouteComponent() {
             deletedProductRowsCount: number;
           };
         }>("/admin/products/sync", null, {
-          params: { serverCode },
+          params: { firmCode },
         })
       ).data;
     },
@@ -141,7 +160,7 @@ function CommandsRouteComponent() {
     return () => clearInterval(interval);
   }, [lastRanAt]);
 
-  const jobQuery = useQuery(jobQueryOptions(serverCode));
+  const jobQuery = useQuery(jobQueryOptions(firmCode));
 
   useEffect(() => {
     const jobData = jobQuery.data;
@@ -163,7 +182,7 @@ function CommandsRouteComponent() {
           "/admin/jobs",
           { frequency, unit },
           {
-            params: { serverCode },
+            params: { firmCode },
           },
         )
       ).data;

@@ -41,7 +41,7 @@ function groupProductRows(rows: ProductJoinRow[]): ProductWithBarcodes[] {
 type SortBy = "name" | "price" | "stockCode" | "status" | "stockQuantity";
 
 const productsQueryOptions = (
-  serverCode: string,
+  firmCode: string,
   page = 1,
   limit = 20,
   search?: string,
@@ -52,7 +52,7 @@ const productsQueryOptions = (
     staleTime: 1000 * 60 * 5,
     queryKey: [
       productsQueryKey,
-      serverCode,
+      firmCode,
       page,
       limit,
       search,
@@ -66,7 +66,7 @@ const productsQueryOptions = (
           products: ProductJoinRow[];
           rowCount: number;
         }>("/admin/products", {
-          params: { serverCode, page, limit, search, sortBy, sortOrder },
+          params: { firmCode, page, limit, search, sortBy, sortOrder },
         })
       ).data,
   });
@@ -74,7 +74,7 @@ const productsQueryOptions = (
 export const Route = createFileRoute("/")({
   loader: ({ context }) => {
     return context.queryClient.ensureQueryData(
-      productsQueryOptions(store.get(sessionAtom)!.serverCode),
+      productsQueryOptions(store.get(sessionAtom)!.firmCode),
     );
   },
   pendingComponent: () => <Spinner className="size-6" />,
@@ -101,7 +101,7 @@ function HomeComponent() {
 
   const { data } = useSuspenseQuery(
     productsQueryOptions(
-      session!.serverCode,
+      session!.firmCode,
       pagination.pageIndex + 1,
       pagination.pageSize,
       search,
