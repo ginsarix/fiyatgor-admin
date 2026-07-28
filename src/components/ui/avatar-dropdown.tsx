@@ -53,19 +53,19 @@ export function AvatarDropdown({
       <DropdownMenuContent className="w-40" align="end" sideOffset={8}>
         <DropdownMenuGroup>
           {role === "superadmin" && (
-            <DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link
                 to="/superadmin"
-                className="inline-flex w-full justify-between items-center"
+                className="w-full justify-between items-center cursor-pointer"
               >
                 <span className="me-auto">Super Admin</span> <ShieldUserIcon />
               </Link>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem>
+          <DropdownMenuItem asChild>
             <Link
               to="/settings"
-              className="inline-flex w-full justify-between items-center"
+              className="w-full justify-between items-center cursor-pointer"
             >
               <span className="me-auto">Ayarlar</span> <Settings2Icon />
             </Link>
