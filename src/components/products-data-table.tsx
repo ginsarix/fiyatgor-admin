@@ -104,7 +104,7 @@ export function DataTable<TData, TValue>({
   }, [searchInput]);
 
   return (
-    <div className="overflow-hidden rounded-md border">
+    <div className="max-w-full overflow-hidden rounded-md border">
       {/* Toolbar */}
       <div className="flex items-center gap-2 border-b px-3 py-2">
         <SearchIcon className="text-muted-foreground size-4 shrink-0" />

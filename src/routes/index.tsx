@@ -1,11 +1,11 @@
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import type { SortingState } from "@tanstack/react-table";
 import { useAtomValue } from "jotai";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ProductAdd } from "@/components/product-add";
 import {
-  columns,
+  getProductColumns,
   type InsertableBarcode,
   type InsertableProduct,
   type ProductWithBarcodes,
@@ -13,9 +13,10 @@ import {
 import { DataTable } from "@/components/products-data-table";
 import { Spinner } from "@/components/ui/spinner";
 import { axios } from "@/config/api";
-import { productsQueryKey } from "@/constants/queryKeys";
+import { firmQueryKey, productsQueryKey } from "@/constants/queryKeys";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
+import type { Firm } from "@/types/firm";
 
 type ProductJoinRow = {
   products: InsertableProduct;
@@ -71,11 +72,27 @@ const productsQueryOptions = (
       ).data,
   });
 
+const firmQueryOptions = (firmCode: string) =>
+  queryOptions({
+    queryKey: [firmQueryKey],
+    queryFn: async () =>
+      (
+        await axios.get<{ message: string; firm: Firm }>("/admin/firm", {
+          params: { firmCode },
+        })
+      ).data,
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+  });
+
 export const Route = createFileRoute("/")({
-  loader: ({ context }) => {
-    return context.queryClient.ensureQueryData(
-      productsQueryOptions(store.get(sessionAtom)!.firmCode),
-    );
+  loader: async ({ context }) => {
+    const { firmCode } = store.get(sessionAtom)!;
+    const [productsData] = await Promise.all([
+      context.queryClient.ensureQueryData(productsQueryOptions(firmCode)),
+      context.queryClient.prefetchQuery(firmQueryOptions(firmCode)),
+    ]);
+    return productsData;
   },
   pendingComponent: () => <Spinner className="size-6" />,
   component: HomeComponent,
@@ -110,6 +127,13 @@ function HomeComponent() {
     ),
   );
 
+  const firmQuery = useQuery(firmQueryOptions(session!.firmCode));
+  const discountsEnabled = firmQuery.data?.firm.discountsEnabled ?? false;
+  const columns = useMemo(
+    () => getProductColumns(discountsEnabled),
+    [discountsEnabled],
+  );
+
   const handleSort = useCallback<typeof setSorting>((updater) => {
     setSorting(updater);
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
@@ -123,7 +147,7 @@ function HomeComponent() {
   const products = groupProductRows(data.products);
 
   return (
-    <div className="p-5">
+    <div className="w-full min-w-0 justify-self-stretch p-5">
       <div className="mb-3 flex justify-end">
         <ProductAdd />
       </div>

@@ -20,6 +20,8 @@ export type Firm = {
     | "fiyat9"
     | "fiyat10";
   maxProductNameCharacters: number | null;
+  discountsEnabled: boolean;
+  estimatedNextSyncCost: string | null;
   createdAt: string;
   updatedAt: string | null;
 };

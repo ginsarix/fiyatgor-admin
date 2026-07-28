@@ -30,8 +30,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -238,6 +240,7 @@ function ProfileRouteComponent() {
       diaPeriodCode: cachedFirm?.diaPeriodCode ?? 0,
       priceField: cachedFirm?.priceField ?? "fiyat1",
       maxProductNameCharacters: cachedFirm?.maxProductNameCharacters ?? null,
+      discountsEnabled: cachedFirm?.discountsEnabled ?? false,
     },
   });
 
@@ -254,6 +257,7 @@ function ProfileRouteComponent() {
         diaPeriodCode: data.firm.diaPeriodCode ?? undefined,
         priceField: data.firm.priceField,
         maxProductNameCharacters: data.firm.maxProductNameCharacters,
+        discountsEnabled: data.firm.discountsEnabled,
       });
     }
   }, [firmQuery.data, resetFirm]);
@@ -627,6 +631,41 @@ function ProfileRouteComponent() {
                     {firmErrors.maxProductNameCharacters?.message}
                   </FieldDescription>
                 </Field>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                İndirim Ayarları
+              </p>
+              <div className="flex items-start gap-2">
+                <Controller
+                  control={firmControl}
+                  name="discountsEnabled"
+                  render={({ field }) => (
+                    <Checkbox
+                      id="discounts-enabled"
+                      checked={field.value ?? false}
+                      onCheckedChange={field.onChange}
+                      className="mt-0.5"
+                    />
+                  )}
+                />
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="discounts-enabled"
+                    className="text-sm font-normal"
+                  >
+                    DIA kampanya indirimlerini etkinleştir
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Açıldığında her ürün eşleştirmesinde aktif kampanyalar
+                    DIA'dan getirilir ve kampanya kapsamındaki ürünlerinize,
+                    ayarlanan indirimler uygulanır
+                  </p>
+                </div>
               </div>
             </div>
 

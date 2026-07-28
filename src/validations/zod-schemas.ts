@@ -64,6 +64,8 @@ export const editFirmSchema = z.object({
       .nullish()
       .default(null),
   ),
+
+  discountsEnabled: z.boolean().optional(),
 });
 
 export const stockRowSchema = z.object({

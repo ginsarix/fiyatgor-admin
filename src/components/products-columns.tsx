@@ -21,6 +21,10 @@ export type InsertableProduct = {
   stockQuantity: number;
   createdAt: string;
   updatedAt: string;
+  discountedPrice: string | null;
+  discountStartsAt: string | null;
+  discountEndsAt: string | null;
+  discountDetail: string | null;
 };
 
 export type InsertableBarcode = {
@@ -96,65 +100,109 @@ function BarcodesCell({
 
 // ─── Columns ──────────────────────────────────────────────────────────────────
 
-export const columns: ColumnDef<ProductWithBarcodes>[] = [
+const discountColumns: ColumnDef<ProductWithBarcodes>[] = [
   {
-    header: "Stok Kodu",
-    accessorFn: (row) => row.stockCode,
-    id: "stockCode",
-  },
-  {
-    header: "Ürün Adı",
-    accessorFn: (row) => row.name,
-    id: "name",
-  },
-  {
-    header: "Fiyat",
+    header: "İndirimli Fiyat",
     accessorFn: (row) =>
-      new Intl.NumberFormat("tr-TR", {
-        style: "decimal",
-        minimumFractionDigits: 2,
-      }).format(row.price),
-    id: "price",
-  },
-  {
-    header: "Döviz",
-    accessorFn: (row) => row.currency,
-    id: "currency",
+      row.discountedPrice
+        ? new Intl.NumberFormat("tr-TR", {
+            style: "decimal",
+            minimumFractionDigits: 2,
+          }).format(Number(row.discountedPrice))
+        : "—",
+    id: "discountedPrice",
     enableSorting: false,
   },
   {
-    header: "Stok Miktarı",
-    accessorFn: (row) => row.stockQuantity,
-    id: "stockQuantity",
-  },
-  {
-    header: "Birim",
-    accessorFn: (row) => row.unit,
-    id: "unit",
+    header: "Kampanya",
+    accessorFn: (row) => row.discountDetail ?? "—",
+    id: "discountDetail",
     enableSorting: false,
   },
   {
-    header: "Barkodlar",
-    id: "barcodes",
-    enableSorting: false,
-    cell: ({ row }) => (
-      <BarcodesCell
-        barcodes={row.original.barcodes}
-        productName={row.original.name}
-        stockCode={row.original.stockCode}
-      />
-    ),
-  },
-  {
-    header: "Eklenme Tarihi",
-    accessorFn: (row) => new Date(row.createdAt).toLocaleDateString("tr-TR"),
-    id: "createdAt",
+    header: "İndirim Başlangıcı",
+    accessorFn: (row) =>
+      row.discountStartsAt
+        ? new Date(row.discountStartsAt).toLocaleString("tr-TR")
+        : "—",
+    id: "discountStartsAt",
     enableSorting: false,
   },
   {
-    header: "Yenilenme Tarihi",
-    accessorFn: (row) => new Date(row.updatedAt).toLocaleString("tr-TR"),
-    id: "updatedAt",
+    header: "İndirim Bitişi",
+    accessorFn: (row) =>
+      row.discountEndsAt
+        ? new Date(row.discountEndsAt).toLocaleString("tr-TR")
+        : "—",
+    id: "discountEndsAt",
     enableSorting: false,
   },
 ];
+
+export function getProductColumns(
+  discountsEnabled: boolean,
+): ColumnDef<ProductWithBarcodes>[] {
+  return [
+    {
+      header: "Stok Kodu",
+      accessorFn: (row) => row.stockCode,
+      id: "stockCode",
+    },
+    {
+      header: "Ürün Adı",
+      accessorFn: (row) => row.name,
+      id: "name",
+    },
+    {
+      header: "Fiyat",
+      accessorFn: (row) =>
+        new Intl.NumberFormat("tr-TR", {
+          style: "decimal",
+          minimumFractionDigits: 2,
+        }).format(row.price),
+      id: "price",
+    },
+    {
+      header: "Döviz",
+      accessorFn: (row) => row.currency,
+      id: "currency",
+      enableSorting: false,
+    },
+    ...(discountsEnabled ? discountColumns : []),
+    {
+      header: "Stok Miktarı",
+      accessorFn: (row) => row.stockQuantity,
+      id: "stockQuantity",
+    },
+    {
+      header: "Birim",
+      accessorFn: (row) => row.unit,
+      id: "unit",
+      enableSorting: false,
+    },
+    {
+      header: "Barkodlar",
+      id: "barcodes",
+      enableSorting: false,
+      cell: ({ row }) => (
+        <BarcodesCell
+          barcodes={row.original.barcodes}
+          productName={row.original.name}
+          stockCode={row.original.stockCode}
+        />
+      ),
+    },
+    {
+      header: "Eklenme Tarihi",
+      accessorFn: (row) => new Date(row.createdAt).toLocaleDateString("tr-TR"),
+      id: "createdAt",
+      enableSorting: false,
+    },
+    {
+      header: "Yenilenme Tarihi",
+      accessorFn: (row) => new Date(row.updatedAt).toLocaleString("tr-TR"),
+      id: "updatedAt",
+      enableSorting: false,
+    },
+  ];
+}

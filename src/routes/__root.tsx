@@ -196,7 +196,7 @@ function RootComponent() {
         {/* Main Content */}
         <main
           className={cn(
-            "flex-1 grid place-items-center transition-[margin] duration-200",
+            "min-w-0 flex-1 grid place-items-center transition-[margin] duration-200",
             session && drawerOpen && "ml-56",
           )}
         >
