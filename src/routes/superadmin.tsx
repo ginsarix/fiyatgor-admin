@@ -117,6 +117,8 @@ const firmSchema = z.object({
       .nullish()
       .default(null),
   ),
+
+  discountsEnabled: z.boolean().optional(),
 });
 
 const jobSchema = z.object({
@@ -313,6 +315,7 @@ function CreateFirmCard({
         diaPeriodCode: "",
 
         priceField: "fiyat1",
+        discountsEnabled: false,
       },
     },
   });
@@ -515,6 +518,34 @@ function CreateFirmCard({
                 {errors.firm?.maxProductNameCharacters?.message}
               </FieldDescription>
             </Field>
+          </div>
+
+          <Separator />
+
+          <div>
+            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              İndirim Ayarları
+            </p>
+            <div className="flex items-start gap-2">
+              <Controller
+                control={control}
+                name="firm.discountsEnabled"
+                render={({ field }) => (
+                  <Checkbox
+                    id="firm-discounts-enabled"
+                    checked={field.value ?? false}
+                    onCheckedChange={field.onChange}
+                    className="mt-0.5"
+                  />
+                )}
+              />
+              <Label
+                htmlFor="firm-discounts-enabled"
+                className="text-sm font-normal"
+              >
+                DIA kampanya indirimlerini etkinleştir
+              </Label>
+            </div>
           </div>
 
           <Separator />

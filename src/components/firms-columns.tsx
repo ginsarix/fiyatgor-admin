@@ -6,6 +6,7 @@ import {
   selectedFirmMutationModeAtom,
 } from "@/state/atoms/firm";
 import { store } from "@/state/store";
+import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 
 export type FirmSummary = {
@@ -14,6 +15,7 @@ export type FirmSummary = {
   name: string;
   diaServerCode: string | null;
   diaFirmCode: number | null;
+  discountsEnabled: boolean;
   createdAt: string;
   updatedAt: string | null;
 };
@@ -41,6 +43,15 @@ export const firmsColumns: ColumnDef<FirmSummary>[] = [
   {
     header: "Dia Firma Kodu",
     accessorKey: "diaFirmCode",
+  },
+  {
+    header: "İndirim",
+    accessorKey: "discountsEnabled",
+    cell: ({ getValue }) => (
+      <Badge variant={getValue<boolean>() ? "default" : "secondary"}>
+        {getValue<boolean>() ? "Aktif" : "Pasif"}
+      </Badge>
+    ),
   },
   {
     header: "Oluşturulma",

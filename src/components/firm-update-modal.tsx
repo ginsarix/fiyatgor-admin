@@ -2,10 +2,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAtom } from "jotai";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogClose,
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { axios } from "@/config/api";
 import { firmsQueryKey } from "@/constants/queryKeys";
 import { filterEmptyFields } from "@/lib/utils";
@@ -78,6 +80,7 @@ export function FirmUpdateModal() {
     handleSubmit,
     formState: { errors },
     reset,
+    control,
   } = useForm({
     resolver: zodResolver(editFirmSchema),
     defaultValues: {
@@ -87,6 +90,7 @@ export function FirmUpdateModal() {
       diaApiKey: "",
       diaFirmCode: 0,
       diaPeriodCode: 0,
+      discountsEnabled: false,
     },
   });
 
@@ -201,6 +205,34 @@ export function FirmUpdateModal() {
               </Field>
             </div>
           </div>
+
+          <Separator />
+          <div>
+            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              İndirim Ayarları
+            </p>
+            <div className="flex items-start gap-2">
+              <Controller
+                control={control}
+                name="discountsEnabled"
+                render={({ field }) => (
+                  <Checkbox
+                    id="firm-discounts-enabled"
+                    checked={field.value ?? false}
+                    onCheckedChange={field.onChange}
+                    className="mt-0.5"
+                  />
+                )}
+              />
+              <Label
+                htmlFor="firm-discounts-enabled"
+                className="text-sm font-normal"
+              >
+                DIA kampanya indirimlerini etkinleştir
+              </Label>
+            </div>
+          </div>
+
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">İptal</Button>
