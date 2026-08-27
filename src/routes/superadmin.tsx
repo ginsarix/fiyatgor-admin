@@ -56,7 +56,7 @@ type CreatedUser = UserSummary;
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 const emptyToUndefined = (val: unknown) => {
-  if (val === "" || val === null || val === undefined) return undefined;
+  if (val === null || val === undefined) return undefined;
   if (typeof val === "number" && Number.isNaN(val)) return undefined;
   if (typeof val === "string" && val.trim() === "") return undefined;
   return val;
