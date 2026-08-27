@@ -201,13 +201,14 @@ function CampaignCommandsRouteComponent() {
     onError: (error) => toast(error.message),
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: toggleMutation is a new object every render, so only its stable mutate reference and its isPending flag are tracked deliberately
   const columns = useMemo(
     () =>
       getSpecialOfferColumns(
         (offer, enabled) => toggleMutation.mutate({ id: offer.id, enabled }),
         toggleMutation.isPending,
       ),
-    [toggleMutation],
+    [toggleMutation.mutate, toggleMutation.isPending],
   );
 
   const handleSort = useCallback<typeof setSorting>((updater) => {
