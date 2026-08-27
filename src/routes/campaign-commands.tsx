@@ -40,6 +40,9 @@ import type { SpecialOffer } from "@/types/special-offer";
 
 type SortBy = "name" | "priority" | "startsAt" | "endsAt";
 
+const PRODUCT_SYNC_WARNING =
+  "Lütfen kampanyaları eşleştirmeden önce bu seferlik 1 kez ürünleri eşleştirin. Bunu bir daha yapmanıza gerek olmayacaktır.";
+
 const firmQueryOptions = (firmCode: string) =>
   queryOptions({
     queryKey: [firmQueryKey],
@@ -112,6 +115,11 @@ export const Route = createFileRoute("/campaign-commands")({
   },
   pendingComponent: () => <Spinner className="size-6" />,
   component: CampaignCommandsRouteComponent,
+  errorComponent: () => (
+    <div className="text-red-400 p-3 rounded-lg">
+      Kampanyalar getirilirken bir hata ile karşılaşıldı
+    </div>
+  ),
 });
 
 function CampaignCommandsRouteComponent() {
@@ -145,13 +153,14 @@ function CampaignCommandsRouteComponent() {
       });
 
       if (!data.hasSyncedProducts) {
-        toast.warning(
-          "Lütfen kampanyaları eşleştirmeden önce bu seferlik 1 kez ürünleri eşleştirin. Bunu bir daha yapmanıza gerek olmayacaktır.",
-          { duration: 10000 },
-        );
+        toast.warning(PRODUCT_SYNC_WARNING, { duration: 10000 });
       }
     },
-    onError: (error) => toast(error.message),
+    onError: (error) =>
+      toast.error(
+        (error as { response?: { data?: { message?: string } } }).response
+          ?.data?.message ?? error.message,
+      ),
   });
 
   const [pagination, setPagination] = useState({
@@ -162,7 +171,7 @@ function CampaignCommandsRouteComponent() {
   const [search, setSearch] = useState<string | undefined>(undefined);
 
   const sortBy = (sorting[0]?.id as SortBy | undefined) ?? "name";
-  const sortOrder = sorting[0]?.desc ? "asc" : "desc";
+  const sortOrder = sorting[0]?.desc ? "desc" : "asc";
 
   const { data } = useSuspenseQuery(
     specialOffersQueryOptions(
@@ -187,18 +196,52 @@ function CampaignCommandsRouteComponent() {
         }>(`/admin/special-offers/${id}`, { enabled }, { params: { firmCode } })
       ).data;
     },
-    onSuccess: (data) => {
+    onMutate: async ({ id, enabled }) => {
+      const queryKey = specialOffersQueryOptions(
+        firmCode,
+        pagination.pageIndex + 1,
+        pagination.pageSize,
+        search,
+        sortBy,
+        sortOrder,
+      ).queryKey;
+
+      await queryClient.cancelQueries({ queryKey });
+
+      const previous = queryClient.getQueryData<{
+        message: string;
+        specialOffers: SpecialOffer[];
+        rowCount: number;
+      }>(queryKey);
+
+      if (previous) {
+        queryClient.setQueryData(queryKey, {
+          ...previous,
+          specialOffers: previous.specialOffers.map((offer) =>
+            offer.id === id ? { ...offer, enabled } : offer,
+          ),
+        });
+      }
+
+      return { previous, queryKey };
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(context.queryKey, context.previous);
+      }
+      toast.error(
+        (error as { response?: { data?: { message?: string } } }).response
+          ?.data?.message ?? error.message,
+      );
+    },
+    onSettled: (data) => {
       queryClient.invalidateQueries({ queryKey: [specialOffersQueryKey] });
       queryClient.invalidateQueries({ queryKey: [productsQueryKey] });
 
-      if (!data.hasSyncedProducts) {
-        toast.warning(
-          "Lütfen kampanyaları eşleştirmeden önce bu seferlik 1 kez ürünleri eşleştirin. Bunu bir daha yapmanıza gerek olmayacaktır.",
-          { duration: 10000 },
-        );
+      if (data && !data.hasSyncedProducts) {
+        toast.warning(PRODUCT_SYNC_WARNING, { duration: 10000 });
       }
     },
-    onError: (error) => toast(error.message),
   });
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: toggleMutation is a new object every render, so only its stable mutate reference and its isPending flag are tracked deliberately
