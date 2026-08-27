@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
-import { ClockIcon, InfoIcon, RefreshCwIcon } from "lucide-react";
+import { ClockIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -54,12 +54,7 @@ const firmQueryOptions = (firmCode: string) =>
       (
         await axios.get<{
           message: string;
-          firm: {
-            diaServerCode: string | null;
-            diaFirmCode: number | null;
-            discountsEnabled: boolean;
-            estimatedNextSyncCost: string | null;
-          };
+          firm: { diaServerCode: string | null; diaFirmCode: number | null };
         }>("/admin/firm", { params: { firmCode } })
       ).data,
     retry: false,
@@ -167,7 +162,6 @@ function CommandsRouteComponent() {
   }, [lastRanAt]);
 
   const jobQuery = useQuery(jobQueryOptions(firmCode));
-  const firmQuery = useQuery(firmQueryOptions(firmCode));
 
   useEffect(() => {
     const jobData = jobQuery.data;
@@ -279,30 +273,6 @@ function CommandsRouteComponent() {
             {jobSaveStateText}
           </span>
         </div>
-
-        {firmQuery.data?.firm.discountsEnabled && (
-          <div className="mt-4 flex gap-2 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-            <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <div className="space-y-1">
-              <p>
-                DIA Web Servisi'nin kısıtlamaları nedeniyle kampanya
-                bilgileri tek tek sorgulanmak zorunda kalıyor; bu yüzden her
-                eşleştirmede kampanya sayısı kadar ekstra DIA kontörü
-                harcanıyor.
-              </p>
-              {firmQuery.data.firm.estimatedNextSyncCost !== null && (
-                <p className="font-medium text-foreground">
-                  Sonraki eşleştirmenin tahmini maliyeti:{" "}
-                  {new Intl.NumberFormat("tr-TR", {
-                    minimumFractionDigits: 3,
-                    maximumFractionDigits: 3,
-                  }).format(Number(firmQuery.data.firm.estimatedNextSyncCost))}{" "}
-                  kontör
-                </p>
-              )}
-            </div>
-          </div>
-        )}
       </CardContent>
 
       <CardFooter className="flex justify-between border-t pt-4">
