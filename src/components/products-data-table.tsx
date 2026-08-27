@@ -35,6 +35,7 @@ interface DataTableProps<TData, TValue> {
   onPaginate: OnChangeFn<PaginationState>;
   onSort: OnChangeFn<SortingState>;
   onSearch: (search: string) => void;
+  searchPlaceholder?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -46,6 +47,7 @@ export function DataTable<TData, TValue>({
   onPaginate,
   onSort,
   onSearch,
+  searchPlaceholder = "Ürün adı veya stok kodu ara...",
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -111,7 +113,7 @@ export function DataTable<TData, TValue>({
         <input
           type="search"
           ref={searchInputRef}
-          placeholder="Ürün adı veya stok kodu ara..."
+          placeholder={searchPlaceholder}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="w-full text-sm placeholder:text-muted-foreground focus:outline-none"
