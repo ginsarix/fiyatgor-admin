@@ -13,6 +13,7 @@ import { Route as SuperadminRouteImport } from './routes/superadmin'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CommandsRouteImport } from './routes/commands'
+import { Route as CampaignCommandsRouteImport } from './routes/campaign-commands'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SuperadminRoute = SuperadminRouteImport.update({
@@ -35,6 +36,11 @@ const CommandsRoute = CommandsRouteImport.update({
   path: '/commands',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CampaignCommandsRoute = CampaignCommandsRouteImport.update({
+  id: '/campaign-commands',
+  path: '/campaign-commands',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,6 +49,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/campaign-commands': typeof CampaignCommandsRoute
   '/commands': typeof CommandsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/campaign-commands': typeof CampaignCommandsRoute
   '/commands': typeof CommandsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/campaign-commands': typeof CampaignCommandsRoute
   '/commands': typeof CommandsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -65,14 +74,34 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/commands' | '/login' | '/settings' | '/superadmin'
+  fullPaths:
+    | '/'
+    | '/campaign-commands'
+    | '/commands'
+    | '/login'
+    | '/settings'
+    | '/superadmin'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/commands' | '/login' | '/settings' | '/superadmin'
-  id: '__root__' | '/' | '/commands' | '/login' | '/settings' | '/superadmin'
+  to:
+    | '/'
+    | '/campaign-commands'
+    | '/commands'
+    | '/login'
+    | '/settings'
+    | '/superadmin'
+  id:
+    | '__root__'
+    | '/'
+    | '/campaign-commands'
+    | '/commands'
+    | '/login'
+    | '/settings'
+    | '/superadmin'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CampaignCommandsRoute: typeof CampaignCommandsRoute
   CommandsRoute: typeof CommandsRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
@@ -109,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommandsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/campaign-commands': {
+      id: '/campaign-commands'
+      path: '/campaign-commands'
+      fullPath: '/campaign-commands'
+      preLoaderRoute: typeof CampaignCommandsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -121,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CampaignCommandsRoute: CampaignCommandsRoute,
   CommandsRoute: CommandsRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
