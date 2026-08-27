@@ -8,7 +8,7 @@ import {
   useLocation,
 } from "@tanstack/react-router";
 import { useAtom } from "jotai";
-import { Home, Menu, Terminal } from "lucide-react";
+import { BadgePercent, Home, Menu, Terminal } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { AvatarDropdown } from "@/components/ui/avatar-dropdown";
 import { Button } from "@/components/ui/button";
@@ -65,7 +65,11 @@ function RootComponent() {
       (
         await axios.get<{
           message: string;
-          firm: { diaServerCode: string | null; diaFirmCode: number | null };
+          firm: {
+            diaServerCode: string | null;
+            diaFirmCode: number | null;
+            discountsEnabled: boolean;
+          };
         }>("/admin/firm", { params: { firmCode: session?.firmCode } })
       ).data,
     enabled: !!session,
@@ -186,7 +190,22 @@ function RootComponent() {
                   )}
                 >
                   <Terminal className="h-3.5 w-3.5 shrink-0" />
-                  Komutlar
+                  Ürün Komutları
+                </Link>
+              )}
+
+              {hasDiaCredentials && firmQuery.data?.firm?.discountsEnabled && (
+                <Link
+                  to="/campaign-commands"
+                  className={cn(
+                    "flex items-center gap-2.5 border-l-2 px-3 py-1.5 font-mono text-xs font-normal uppercase tracking-widest transition-colors",
+                    location.pathname === "/campaign-commands"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
+                  )}
+                >
+                  <BadgePercent className="h-3.5 w-3.5 shrink-0" />
+                  Kampanya Komutları
                 </Link>
               )}
             </nav>
