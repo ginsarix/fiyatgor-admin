@@ -4,3 +4,4 @@ export const meQueryKey = "me-query";
 export const firmQueryKey = "firm-query";
 export const firmsQueryKey = "firms-query";
 export const superAdminUsersQueryKey = "superadmin-users";
+export const specialOffersQueryKey = "special-offers";
