@@ -72,7 +72,7 @@ const firmSchema = z.object({
   diaFirmCode: z.preprocess(
     emptyToUndefined,
     z
-      .number({ error: "Dia firma kodu boş olamaz" })
+      .coerce.number({ error: "Dia firma kodu boş olamaz" })
       .int({ error: "Geçerli bir dia firma kodu giriniz" })
       .positive({ error: "Geçerli bir dia firma kodu giriniz" })
       .optional(),
@@ -81,7 +81,7 @@ const firmSchema = z.object({
   diaPeriodCode: z.preprocess(
     emptyToUndefined,
     z
-      .number({ error: "Dönem kodu boş olamaz" })
+      .coerce.number({ error: "Dönem kodu boş olamaz" })
       .int({ error: "Geçerli bir dönem kodu giriniz" })
       .min(0)
       .optional(),
