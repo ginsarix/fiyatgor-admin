@@ -149,10 +149,10 @@ function CommandsRouteComponent() {
     ? productsSyncMutation.variables
     : null;
 
-  const [frequency, setFrequency] = useState(1);
+  const [frequency, setFrequency] = useState<number | undefined>(undefined);
 
   type Unit = "minute" | "hour" | "day" | "month";
-  const [unit, setUnit] = useState<Unit>("day");
+  const [unit, setUnit] = useState<Unit | undefined>(undefined);
 
   // const [jobSaveStateText, setJobSaveStateText] = useState<
   //   "Kaydediliyor..." | "Kaydedildi" | "Kaydedilmedi" | ""
@@ -215,6 +215,8 @@ function CommandsRouteComponent() {
   useEffect(() => {
     if (!isDirty) return;
 
+    if (!frequency || !unit) return;
+
     setJobSaveState('saving');
 
     const handler = setTimeout(async () => {
@@ -276,7 +278,7 @@ function CommandsRouteComponent() {
               }}
             >
               <SelectTrigger className="flex-1">
-                <SelectValue />
+                <SelectValue placeholder="Sıklık seçin" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="minute">Dakikada bir</SelectItem>
