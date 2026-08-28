@@ -9,31 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SuperadminRouteImport } from './routes/superadmin'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as CommandsRouteImport } from './routes/commands'
-import { Route as CampaignCommandsRouteImport } from './routes/campaign-commands'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CampaignCommandsRouteImport } from './routes/campaign-commands'
+import { Route as CommandsRouteImport } from './routes/commands'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SuperadminRouteImport } from './routes/superadmin'
 
-const SuperadminRoute = SuperadminRouteImport.update({
-  id: '/superadmin',
-  path: '/superadmin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommandsRoute = CommandsRouteImport.update({
-  id: '/commands',
-  path: '/commands',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CampaignCommandsRoute = CampaignCommandsRouteImport.update({
@@ -41,9 +26,24 @@ const CampaignCommandsRoute = CampaignCommandsRouteImport.update({
   path: '/campaign-commands',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const CommandsRoute = CommandsRouteImport.update({
+  id: '/commands',
+  path: '/commands',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuperadminRoute = SuperadminRouteImport.update({
+  id: '/superadmin',
+  path: '/superadmin',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -110,32 +110,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/superadmin': {
-      id: '/superadmin'
-      path: '/superadmin'
-      fullPath: '/superadmin'
-      preLoaderRoute: typeof SuperadminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/commands': {
-      id: '/commands'
-      path: '/commands'
-      fullPath: '/commands'
-      preLoaderRoute: typeof CommandsRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campaign-commands': {
@@ -145,11 +124,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CampaignCommandsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/commands': {
+      id: '/commands'
+      path: '/commands'
+      fullPath: '/commands'
+      preLoaderRoute: typeof CommandsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/superadmin': {
+      id: '/superadmin'
+      path: '/superadmin'
+      fullPath: '/superadmin'
+      preLoaderRoute: typeof SuperadminRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
