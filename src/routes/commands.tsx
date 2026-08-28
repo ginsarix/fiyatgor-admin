@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { isAxiosError } from "axios";
 import { useAtomValue } from "jotai";
 import { ClockIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -99,9 +100,11 @@ function CommandsRouteComponent() {
   const { firmCode } = useAtomValue(sessionAtom)!;
   const queryClient = useQueryClient();
 
+  type ProductSyncMode = "full" | "quick";
+
   const productsSyncMutation = useMutation({
     mutationKey: [productsSyncMutationKey],
-    mutationFn: async () => {
+    mutationFn: async (mode: ProductSyncMode) => {
       return (
         await axios.post<{
           message: string;
@@ -113,7 +116,7 @@ function CommandsRouteComponent() {
             deletedProductRowsCount: number;
           };
         }>("/admin/products/sync", null, {
-          params: { firmCode },
+          params: { firmCode, mode },
         })
       ).data;
     },
@@ -125,14 +128,19 @@ function CommandsRouteComponent() {
         description: `${newRowCounts.insertedProductRowsCount} tane yeni, ${newRowCounts.updatedProductRowsCount} tane değiştirilmiş, ${newRowCounts.deletedProductRowsCount} tane silinen ürün ve ${newRowCounts.insertedBarcodeRowsCount} tane yeni, ${newRowCounts.updatedBarcodeRowsCount} tane değiştirilmiş barkod bulundu.`,
       });
     },
-    onError: (error) => toast(error.message),
+    onError: (error) =>
+      toast(isAxiosError(error) ? error.response?.data.message : error.message),
   });
 
-  async function syncProducts() {
+  async function syncProducts(mode: ProductSyncMode) {
     if (productsSyncMutation.isPending) return;
-    await productsSyncMutation.mutateAsync();
+    await productsSyncMutation.mutateAsync(mode);
     queryClient.invalidateQueries({ queryKey: [jobQueryKey] });
   }
+
+  const pendingMode = productsSyncMutation.isPending
+    ? productsSyncMutation.variables
+    : null;
 
   const [frequency, setFrequency] = useState(1);
 
@@ -280,15 +288,27 @@ function CommandsRouteComponent() {
           <ClockIcon className="h-3.5 w-3.5" />
           <span>Son çalışma: {lastRanAtDisplay ?? "Çalışmadı"}</span>
         </div>
-        <Button
-          onClick={syncProducts}
-          size="sm"
-          className="flex items-center gap-2 cursor-pointer"
-        >
-          {productsSyncMutation.isPending
-            ? "Eşleştiriliyor..."
-            : "Şimdi çalıştır"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => syncProducts("quick")}
+            disabled={productsSyncMutation.isPending}
+            size="sm"
+            variant="outline"
+            className="flex items-center gap-2 cursor-pointer"
+            title="Son tam çalıştırmadan bu yana değişen ürünleri hızlıca getirir. Silinen/pasif ürünleri temizlemez."
+          >
+            {pendingMode === "quick" ? "Eşleştiriliyor..." : "Hızlı Çalıştır"}
+          </Button>
+          <Button
+            onClick={() => syncProducts("full")}
+            disabled={productsSyncMutation.isPending}
+            size="sm"
+            className="flex items-center gap-2 cursor-pointer"
+            title="Tüm katalogla yeniden eşleştirir; silinen/pasif ürünleri de temizler. Daha uzun sürer."
+          >
+            {pendingMode === "full" ? "Eşleştiriliyor..." : "Tam Çalıştır"}
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );
