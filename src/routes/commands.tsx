@@ -39,6 +39,13 @@ import { cn, timeAgo } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
 
+const jobSaveStateTextMap = {
+  saving: "Kaydediliyor...",
+  saved: "Kaydedildi",
+  unsaved: "Kaydedilmedi",
+  none: ''
+} as const;
+
 type Job = {
   id: number;
   firmId: number;
@@ -147,9 +154,11 @@ function CommandsRouteComponent() {
   type Unit = "minute" | "hour" | "day" | "month";
   const [unit, setUnit] = useState<Unit>("day");
 
-  const [jobSaveStateText, setJobSaveStateText] = useState<
-    "Kaydediliyor..." | "Kaydedildi" | "Kaydedilmedi" | ""
-  >("");
+  // const [jobSaveStateText, setJobSaveStateText] = useState<
+  //   "Kaydediliyor..." | "Kaydedildi" | "Kaydedilmedi" | ""
+  // >("");
+
+  const [jobSaveState, setJobSaveState] = useState<keyof typeof jobSaveStateTextMap>('none');
 
   const [lastRanAt, setLastRanAt] = useState<Date | null>(null);
   const [lastRanAtDisplay, setLastRanAtDisplay] = useState<string | null>(null);
@@ -180,7 +189,7 @@ function CommandsRouteComponent() {
         jobData.job.lastRanAt ? new Date(jobData.job.lastRanAt) : null,
       );
       setIsDirty(false);
-    } else setJobSaveStateText("Kaydedilmedi");
+    } else setJobSaveState("unsaved");
   }, [jobQuery.data]);
 
   const jobMutation = useMutation({
@@ -198,7 +207,7 @@ function CommandsRouteComponent() {
     },
     onError: (error) => {
       toast(error.message);
-      setJobSaveStateText("");
+      setJobSaveState('none');
     },
   });
 
@@ -206,11 +215,11 @@ function CommandsRouteComponent() {
   useEffect(() => {
     if (!isDirty) return;
 
-    setJobSaveStateText("Kaydediliyor...");
+    setJobSaveState('saving');
 
     const handler = setTimeout(async () => {
       await jobMutation.mutateAsync();
-      setJobSaveStateText("Kaydedildi");
+      setJobSaveState('saved');
       setIsDirty(false);
     }, 500);
 
@@ -278,7 +287,7 @@ function CommandsRouteComponent() {
             </Select>
           </div>
           <span className="text-xs text-muted-foreground">
-            {jobSaveStateText}
+            {jobSaveStateTextMap[jobSaveState]}
           </span>
         </div>
       </CardContent>
