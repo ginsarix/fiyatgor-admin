@@ -22,6 +22,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { axios } from "@/config/api";
 import {
@@ -40,7 +48,7 @@ import type { SpecialOffer } from "@/types/special-offer";
 
 type SortBy = "name" | "priority" | "startsAt" | "endsAt";
 
-const PRODUCT_SYNC_WARNING =
+const PRODUCT_SYNC_MESSAGE =
   "Lütfen kampanyaları eşleştirmeden önce bu seferlik 1 kez ürünleri eşleştirin. Bunu bir daha yapmanıza gerek olmayacaktır.";
 
 const firmQueryOptions = (firmCode: string) =>
@@ -128,6 +136,8 @@ function CampaignCommandsRouteComponent() {
 
   const firmQuery = useQuery(firmQueryOptions(firmCode));
 
+  const [productSyncErrorOpen, setProductSyncErrorOpen] = useState(false);
+
   const syncMutation = useMutation({
     mutationKey: [specialOffersSyncMutationKey],
     mutationFn: async () => {
@@ -139,7 +149,6 @@ function CampaignCommandsRouteComponent() {
           updatedCount: number;
           removedCount: number;
           discountedProductCount: number;
-          hasSyncedProducts: boolean;
         }>("/admin/special-offers/sync", null, { params: { firmCode } })
       ).data;
     },
@@ -151,16 +160,19 @@ function CampaignCommandsRouteComponent() {
       toast("Kampanyalar başarıyla eşleştirildi", {
         description: `${data.addedCount} tane yeni, ${data.updatedCount} tane değiştirilmiş, ${data.removedCount} tane silinen kampanya bulundu. ${data.discountedProductCount} ürün şu anda indirimli.`,
       });
-
-      if (!data.hasSyncedProducts) {
-        toast.warning(PRODUCT_SYNC_WARNING, { duration: 10000 });
-      }
     },
-    onError: (error) =>
-      toast.error(
+    onError: (error) => {
+      const message =
         (error as { response?: { data?: { message?: string } } }).response
-          ?.data?.message ?? error.message,
-      ),
+          ?.data?.message ?? error.message;
+
+      if (message === PRODUCT_SYNC_MESSAGE) {
+        setProductSyncErrorOpen(true);
+        return;
+      }
+
+      toast.error(message);
+    },
   });
 
   const [pagination, setPagination] = useState({
@@ -239,7 +251,7 @@ function CampaignCommandsRouteComponent() {
       queryClient.invalidateQueries({ queryKey: [productsQueryKey] });
 
       if (data && !data.hasSyncedProducts) {
-        toast.warning(PRODUCT_SYNC_WARNING, { duration: 10000 });
+        toast.warning(PRODUCT_SYNC_MESSAGE, { duration: 10000 });
       }
     },
   });
@@ -335,6 +347,20 @@ function CampaignCommandsRouteComponent() {
         onSearch={handleSearch}
         searchPlaceholder="Kampanya adı ara..."
       />
+
+      <Dialog open={productSyncErrorOpen} onOpenChange={setProductSyncErrorOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ürünler eşleştirilmedi</DialogTitle>
+            <DialogDescription>{PRODUCT_SYNC_MESSAGE}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setProductSyncErrorOpen(false)}>
+              Tamam
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
