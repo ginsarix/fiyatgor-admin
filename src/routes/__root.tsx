@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createRootRouteWithContext,
   Link,
@@ -9,13 +9,22 @@ import {
 } from "@tanstack/react-router";
 import { useAtom } from "jotai";
 import { BadgePercent, Home, Menu, Terminal } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { AvatarDropdown } from "@/components/ui/avatar-dropdown";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { axios } from "@/config/api";
-import { firmQueryKey } from "@/constants/queryKeys";
+import {
+  firmQueryKey,
+  jobQueryKey,
+  productsQueryKey,
+} from "@/constants/queryKeys";
+import {
+  syncResultDescription,
+  syncStatusQueryOptions,
+} from "@/lib/product-sync-status";
 import { cn, getInitials } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
@@ -80,6 +89,43 @@ function RootComponent() {
   const hasDiaCredentials = !!(
     firmQuery.data?.firm?.diaServerCode && firmQuery.data?.firm?.diaFirmCode
   );
+
+  const queryClient = useQueryClient();
+
+  // lives here (rather than on the commands page) so the completion toast fires no matter
+  // which page the admin is on, or navigates to, while a full sync runs in the background
+  const syncStatusQuery = useQuery({
+    ...syncStatusQueryOptions(session?.firmCode ?? ""),
+    enabled: !!session && hasDiaCredentials,
+  });
+
+  const lastHandledSyncStatusAtRef = useRef(0);
+  useEffect(() => {
+    if (syncStatusQuery.dataUpdatedAt === lastHandledSyncStatusAtRef.current) {
+      return;
+    }
+
+    const status = syncStatusQuery.data?.status;
+    if (!status || status.status === "idle" || status.status === "running") {
+      return;
+    }
+
+    lastHandledSyncStatusAtRef.current = syncStatusQuery.dataUpdatedAt;
+
+    queryClient.invalidateQueries({ queryKey: [jobQueryKey] });
+
+    if (status.status === "done") {
+      queryClient.invalidateQueries({ queryKey: [productsQueryKey] });
+      queryClient.invalidateQueries({ queryKey: [firmQueryKey] });
+
+      toast(`Ürünler başarıyla getirildi`, {
+        description: syncResultDescription(status.newRowCounts),
+        position: "top-right",
+      });
+    } else {
+      toast(status.message, { position: "top-right" });
+    }
+  }, [syncStatusQuery.data, syncStatusQuery.dataUpdatedAt, queryClient]);
 
   const navigate = Route.useNavigate();
 

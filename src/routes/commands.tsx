@@ -34,7 +34,18 @@ import {
   jobMutationKey,
   productsSyncMutationKey,
 } from "@/constants/mutationKeys";
-import { firmQueryKey, jobQueryKey, productsQueryKey } from "@/constants/queryKeys";
+import {
+  firmQueryKey,
+  jobQueryKey,
+  productsQueryKey,
+  productSyncStatusQueryKey,
+} from "@/constants/queryKeys";
+import {
+  type ProductSyncStatus,
+  type SyncRowCounts,
+  syncResultDescription,
+  syncStatusQueryOptions,
+} from "@/lib/product-sync-status";
 import { cn, timeAgo } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
@@ -113,41 +124,68 @@ function CommandsRouteComponent() {
     mutationKey: [productsSyncMutationKey],
     mutationFn: async (mode: ProductSyncMode) => {
       return (
-        await axios.post<{
-          message: string;
-          newRowCounts: {
-            insertedProductRowsCount: number;
-            updatedProductRowsCount: number;
-            insertedBarcodeRowsCount: number;
-            updatedBarcodeRowsCount: number;
-            deletedProductRowsCount: number;
-          };
-        }>("/admin/products/sync", null, {
+        await axios.post<
+          | { message: string; newRowCounts: SyncRowCounts } // mode=quick, completes synchronously
+          | { message: string } // mode=full, started in the background
+        >("/admin/products/sync", null, {
           params: { firmCode, mode },
         })
       ).data;
     },
-    onSuccess: ({ newRowCounts }) => {
-      queryClient.invalidateQueries({ queryKey: [productsQueryKey] });
-      queryClient.invalidateQueries({ queryKey: [firmQueryKey] });
+    onSuccess: (data, mode) => {
+      if (mode === "quick" && "newRowCounts" in data) {
+        queryClient.invalidateQueries({ queryKey: [productsQueryKey] });
+        queryClient.invalidateQueries({ queryKey: [firmQueryKey] });
+        queryClient.invalidateQueries({ queryKey: [jobQueryKey] });
 
-      toast(`Ürünler başarıyla getirildi`, {
-        description: `${newRowCounts.insertedProductRowsCount} tane yeni, ${newRowCounts.updatedProductRowsCount} tane değiştirilmiş, ${newRowCounts.deletedProductRowsCount} tane silinen ürün ve ${newRowCounts.insertedBarcodeRowsCount} tane yeni, ${newRowCounts.updatedBarcodeRowsCount} tane değiştirilmiş barkod bulundu.`,
-      });
+        toast(`Ürünler başarıyla getirildi`, {
+          description: syncResultDescription(data.newRowCounts),
+        });
+        return;
+      }
+
+      // full sync just started — reflect that immediately instead of waiting for the next poll
+      queryClient.setQueryData([productSyncStatusQueryKey], {
+        status: { status: "running" },
+      } satisfies { status: ProductSyncStatus });
     },
-    onError: (error) =>
-      toast(isAxiosError(error) ? error.response?.data.message : error.message),
+    onError: (error, mode) => {
+      if (
+        mode === "full" &&
+        isAxiosError(error) &&
+        error.response?.status === 409
+      ) {
+        // a full sync was already running — just start reflecting its real status
+        queryClient.invalidateQueries({
+          queryKey: [productSyncStatusQueryKey],
+        });
+        return;
+      }
+
+      toast(isAxiosError(error) ? error.response?.data.message : error.message);
+    },
   });
 
   async function syncProducts(mode: ProductSyncMode) {
-    if (productsSyncMutation.isPending) return;
+    if (isBusy) return;
     await productsSyncMutation.mutateAsync(mode);
-    queryClient.invalidateQueries({ queryKey: [jobQueryKey] });
   }
 
-  const pendingMode = productsSyncMutation.isPending
-    ? productsSyncMutation.variables
-    : null;
+  // the completion toast itself is fired globally from __root.tsx (so it shows up regardless
+  // of which page the admin is on); this query is only for this page's own pending/spinner UI —
+  // it shares its cache with the root's poll, so it's not a second network subscription
+  const syncStatusQuery = useQuery(syncStatusQueryOptions(firmCode));
+
+  const isQuickSyncPending =
+    productsSyncMutation.isPending &&
+    productsSyncMutation.variables === "quick";
+  const isFullSyncRequestPending =
+    productsSyncMutation.isPending &&
+    productsSyncMutation.variables === "full";
+  const isFullSyncRunning =
+    syncStatusQuery.data?.status.status === "running";
+  const isFullSyncActive = isFullSyncRequestPending || isFullSyncRunning;
+  const isBusy = isQuickSyncPending || isFullSyncActive;
 
   const [frequency, setFrequency] = useState<number | undefined>(undefined);
 
@@ -229,20 +267,12 @@ function CommandsRouteComponent() {
   }, [frequency, unit, isDirty]);
 
   return (
-    <Card
-      className={cn(
-        "w-full max-w-md",
-        productsSyncMutation.isPending && "animate-pulse",
-      )}
-    >
+    <Card className={cn("w-full max-w-md", isBusy && "animate-pulse")}>
       <CardHeader>
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
             <RefreshCwIcon
-              className={cn(
-                "h-4 w-4 text-primary",
-                productsSyncMutation.isPending && "animate-spin",
-              )}
+              className={cn("h-4 w-4 text-primary", isBusy && "animate-spin")}
             />
           </div>
           <div>
@@ -292,6 +322,12 @@ function CommandsRouteComponent() {
             {jobSaveStateTextMap[jobSaveState]}
           </span>
         </div>
+        {isFullSyncActive && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Siteyi kullanmaya devam edebilir veya bu sayfadan ayrılabilirsiniz.
+            Sekmeyi kapatırsanız eşleştirme tamamlandığında bildirim alamazsınız.
+          </p>
+        )}
       </CardContent>
 
       <CardFooter className="flex justify-between border-t pt-4">
@@ -302,22 +338,22 @@ function CommandsRouteComponent() {
         <div className="flex items-center gap-2">
           <Button
             onClick={() => syncProducts("quick")}
-            disabled={productsSyncMutation.isPending}
+            disabled={isBusy}
             size="sm"
             variant="outline"
             className="flex items-center gap-2 cursor-pointer"
             title="Son tam çalıştırmadan bu yana değişen ürünleri hızlıca getirir. Silinen/pasif ürünleri temizlemez."
           >
-            {pendingMode === "quick" ? "Eşleştiriliyor..." : "Hızlı Çalıştır"}
+            {isQuickSyncPending ? "Eşleştiriliyor..." : "Hızlı Çalıştır"}
           </Button>
           <Button
             onClick={() => syncProducts("full")}
-            disabled={productsSyncMutation.isPending}
+            disabled={isBusy}
             size="sm"
             className="flex items-center gap-2 cursor-pointer"
             title="Tüm katalogla yeniden eşleştirir; silinen/pasif ürünleri de temizler. Daha uzun sürer."
           >
-            {pendingMode === "full" ? "Eşleştiriliyor..." : "Tam Çalıştır"}
+            {isFullSyncActive ? "Eşleştiriliyor..." : "Tam Çalıştır"}
           </Button>
         </div>
       </CardFooter>
