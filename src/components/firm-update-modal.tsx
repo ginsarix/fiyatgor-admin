@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { axios } from "@/config/api";
 import { firmsQueryKey } from "@/constants/queryKeys";
 import { apiErrorMessage } from "@/lib/api-error";
+import { showFirmSavedToast } from "@/lib/firm-saved-toast";
 import { filterEmptyFields } from "@/lib/utils";
 import {
   selectedFirmIdAtom,
@@ -46,18 +47,24 @@ export function FirmUpdateModal() {
     mutationFn: async (data: FirmFormValues) => {
       const payload = filterEmptyFields(data);
       return (
-        await axios.patch<{ message: string; updatedFirm: Firm }>(
+        await axios.patch<{
+          message: string;
+          updatedFirm: Firm;
+          warning?: string;
+        }>(
           `/superadmin/firms/${selectedFirmId}`,
           payload,
         )
       ).data;
     },
-    onSuccess: ({ updatedFirm }) => {
+    onSuccess: ({ updatedFirm, warning }) => {
       setSelectedFirmId(null);
       setSelectedFirmMutationMode(null);
 
-      toast("Firma güncellendi", {
+      showFirmSavedToast({
+        title: "Firma güncellendi",
         description: "Firma bilgileri başarıyla kaydedildi.",
+        warning,
       });
       queryClient.setQueryData(
         [firmsQueryKey],

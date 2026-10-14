@@ -48,6 +48,7 @@ import { catalogMutationKey } from "@/constants/mutationKeys";
 import { FIRM_PLACEHOLDERS } from "@/constants/firmFormPlaceholders";
 import { firmQueryKey, meQueryKey } from "@/constants/queryKeys";
 import { apiErrorMessage } from "@/lib/api-error";
+import { showFirmSavedToast } from "@/lib/firm-saved-toast";
 import { filterEmptyFields } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
@@ -294,16 +295,22 @@ function ProfileRouteComponent() {
     mutationFn: async (data: FirmFormValues) => {
       const payload = filterEmptyFields(data);
       return (
-        await axios.patch<{ message: string; updatedFirm: Firm }>(
+        await axios.patch<{
+          message: string;
+          updatedFirm: Firm;
+          warning?: string;
+        }>(
           "/admin/firm",
           payload,
           { params: { firmCode } },
         )
       ).data;
     },
-    onSuccess: ({ updatedFirm }) => {
-      toast("Firma güncellendi", {
+    onSuccess: ({ updatedFirm, warning }) => {
+      showFirmSavedToast({
+        title: "Firma güncellendi",
         description: "Firma bilgileriniz başarıyla kaydedildi.",
+        warning,
       });
       queryClient.setQueryData([firmQueryKey], {
         message: "Firma başarıyla getirildi",

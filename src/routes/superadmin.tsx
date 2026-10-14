@@ -41,6 +41,7 @@ import { axios } from "@/config/api";
 import { FIRM_PLACEHOLDERS } from "@/constants/firmFormPlaceholders";
 import { firmsQueryKey, superAdminUsersQueryKey } from "@/constants/queryKeys";
 import { apiErrorMessage } from "@/lib/api-error";
+import { showFirmSavedToast } from "@/lib/firm-saved-toast";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -338,15 +339,21 @@ function CreateFirmCard({
   const mutation = useMutation({
     mutationFn: async (data: CreateFirmValues) =>
       (
-        await axios.post<{ message: string; createdFirm: CreatedFirm }>(
+        await axios.post<{
+          message: string;
+          createdFirm: CreatedFirm;
+          warning?: string;
+        }>(
           "/superadmin/firms",
           // omit job from payload if the toggle is off
           withJob ? data : { firm: data.firm },
         )
       ).data,
-    onSuccess: ({ createdFirm }) => {
-      toast("Firma oluşturuldu", {
+    onSuccess: ({ createdFirm, warning }) => {
+      showFirmSavedToast({
+        title: "Firma oluşturuldu",
         description: `${createdFirm.name} başarıyla eklendi.`,
+        warning,
       });
       reset();
       setWithJob(false);
