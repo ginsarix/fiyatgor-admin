@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { axios } from "@/config/api";
 import { firmsQueryKey } from "@/constants/queryKeys";
+import { apiErrorMessage } from "@/lib/api-error";
 import { filterEmptyFields } from "@/lib/utils";
 import {
   selectedFirmIdAtom,
@@ -72,7 +73,7 @@ export function FirmUpdateModal() {
         },
       );
     },
-    onError: (error) => toast(error.message),
+    onError: (error) => toast(apiErrorMessage(error)),
   });
 
   const {

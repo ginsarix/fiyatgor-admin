@@ -47,6 +47,7 @@ import { apiBaseURL, axios } from "@/config/api";
 import { catalogMutationKey } from "@/constants/mutationKeys";
 import { FIRM_PLACEHOLDERS } from "@/constants/firmFormPlaceholders";
 import { firmQueryKey, meQueryKey } from "@/constants/queryKeys";
+import { apiErrorMessage } from "@/lib/api-error";
 import { filterEmptyFields } from "@/lib/utils";
 import { sessionAtom } from "@/state/atoms/session";
 import { store } from "@/state/store";
@@ -309,7 +310,7 @@ function ProfileRouteComponent() {
         firm: updatedFirm,
       });
     },
-    onError: (error) => toast(error.message),
+    onError: (error) => toast(apiErrorMessage(error)),
   });
 
   return (

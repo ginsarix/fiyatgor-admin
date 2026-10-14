@@ -6,7 +6,6 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { isAxiosError } from "axios";
 import { BuildingIcon, PlusIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -41,6 +40,7 @@ import { type UserSummary, usersColumns } from "@/components/users-columns";
 import { axios } from "@/config/api";
 import { FIRM_PLACEHOLDERS } from "@/constants/firmFormPlaceholders";
 import { firmsQueryKey, superAdminUsersQueryKey } from "@/constants/queryKeys";
+import { apiErrorMessage } from "@/lib/api-error";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -352,8 +352,7 @@ function CreateFirmCard({
       setWithJob(false);
       onCreated(createdFirm);
     },
-    onError: (error) =>
-      toast(isAxiosError(error) ? error.response?.data.message : error.message),
+    onError: (error) => toast(apiErrorMessage(error)),
   });
 
   return (
